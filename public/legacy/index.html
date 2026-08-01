@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f7f5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="家計簿（旧版）" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <title>暮らし家計簿（旧版）</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">LEGACY DATA ACCESS</p>
+        <h1>暮らし家計簿（旧版）</h1>
+      </div>
+      <button id="exportBtn" class="icon-btn" aria-label="データを書き出す">⇩</button>
+    </header>
+
+    <main>
+      <section class="month-row">
+        <button id="prevMonth" class="ghost-btn">‹</button>
+        <button id="monthPicker" class="month-button"><span id="monthLabel"></span> ▾</button>
+        <button id="nextMonth" class="ghost-btn">›</button>
+        <input id="monthInput" type="month" hidden />
+      </section>
+
+      <section class="balance-card">
+        <div class="balance-head">
+          <span>今月の収支</span>
+          <span id="balanceTrend" class="trend">—</span>
+        </div>
+        <strong id="balanceAmount">¥0</strong>
+        <div class="summary-grid">
+          <div>
+            <span class="dot income"></span><span>収入</span>
+            <b id="incomeAmount">¥0</b>
+          </div>
+          <div>
+            <span class="dot expense"></span><span>支出</span>
+            <b id="expenseAmount">¥0</b>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title"><div><p class="eyebrow">PAYMENT</p><h2>支払い方法別</h2></div></div>
+        <div id="paymentSummary" class="payment-list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <div><p class="eyebrow">HISTORY</p><h2>最近の記録</h2></div>
+          <button id="clearFilterBtn" class="text-btn hidden">絞り込み解除</button>
+        </div>
+        <div id="transactionList" class="transaction-list"></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="home">⌂<span>ホーム</span></button>
+      <button id="addBtn" class="add-fab" aria-label="記録を追加">＋</button>
+      <button id="receiptQuickBtn" class="nav-item">▣<span>レシート</span></button>
+    </nav>
+  </div>
+
+  <dialog id="entryDialog" class="sheet-dialog">
+    <form id="entryForm" method="dialog" class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title-row">
+        <h2 id="dialogTitle">記録を追加</h2>
+        <button type="button" id="closeDialog" class="icon-btn">×</button>
+      </div>
+
+      <div class="type-switch">
+        <button type="button" class="type-btn active" data-type="expense">支出</button>
+        <button type="button" class="type-btn" data-type="income">収入</button>
+      </div>
+      <input type="hidden" id="entryType" value="expense" />
+      <input type="hidden" id="editId" />
+
+      <label>金額
+        <div class="money-input"><span>¥</span><input id="amount" type="number" min="0" step="1" inputmode="numeric" required placeholder="0" /></div>
+      </label>
+
+      <div class="form-grid">
+        <label>日付<input id="date" type="date" required /></label>
+        <label>カテゴリ<select id="category"></select></label>
+      </div>
+
+      <label>内容<input id="memo" type="text" maxlength="60" placeholder="例：スーパー、アルバイト代" required /></label>
+
+      <label id="paymentField">支払い方法
+        <select id="paymentMethod">
+          <option>現金</option><option>クレジットカード</option><option>PayPay</option><option>交通系IC</option><option>銀行口座</option><option>その他</option>
+        </select>
+      </label>
+
+      <section class="receipt-box">
+        <div>
+          <b>レシート画像</b>
+          <p>画像を添付して、あとから記録と一緒に確認できます。</p>
+        </div>
+        <label class="upload-btn">撮影・選択<input id="receiptInput" type="file" accept="image/*" capture="environment" hidden /></label>
+        <div id="receiptPreviewWrap" class="preview-wrap hidden">
+          <img id="receiptPreview" alt="レシートのプレビュー" />
+          <button type="button" id="removeReceipt" class="danger-text">画像を削除</button>
+        </div>
+      </section>
+
+      <div class="form-actions">
+        <button type="button" id="deleteEntry" class="danger-btn hidden">削除</button>
+        <button type="submit" class="primary-btn">保存する</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="detailDialog" class="sheet-dialog">
+    <div class="sheet detail-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title-row"><h2>記録の詳細</h2><button id="closeDetail" class="icon-btn">×</button></div>
+      <div id="detailContent"></div>
+    </div>
+  </dialog>
+
+  <input id="importInput" type="file" accept="application/json" hidden />
+  <script src="app.js"></script>
+</body>
+</html>

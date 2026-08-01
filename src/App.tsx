@@ -17,7 +17,7 @@ function EmptyPage({ title, text }: { title: string; text: string }): React.JSX.
 }
 
 function SettingsPage(): React.JSX.Element {
-  return <div className="page-stack"><section className="settings-card"><h2>アプリ情報</h2><dl><div><dt>アプリ名</dt><dd>My家計簿</dd></div><div><dt>保存方式</dt><dd>Phase 2でIndexedDBを実装</dd></div><div><dt>外部送信</dt><dd>なし</dd></div></dl></section><section className="notice-card"><h2>データ保存について</h2><p>ブラウザのデータを削除すると、今後保存する家計簿データも消える可能性があります。</p></section></div>;
+  return <div className="page-stack"><section className="settings-card"><h2>アプリ情報</h2><dl><div><dt>アプリ名</dt><dd>My家計簿</dd></div><div><dt>保存方式</dt><dd>Phase 2でIndexedDBを実装</dd></div><div><dt>外部送信</dt><dd>なし</dd></div></dl></section><section className="notice-card"><h2>データ保存について</h2><p>ブラウザのデータを削除すると、今後保存する家計簿データも消える可能性があります。</p></section><section className="notice-card"><h2>旧版データ</h2><p>以前の画面でLocalStorageに保存した記録は削除せず、確認・書き出し用の旧版画面を残しています。</p><a className="legacy-link" href={`${import.meta.env.BASE_URL}legacy/index.html`}>旧版の家計簿を開く</a></section></div>;
 }
 
 function pageFor(tab: AppTabId): React.JSX.Element {
