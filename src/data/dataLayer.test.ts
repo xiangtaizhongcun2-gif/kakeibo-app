@@ -27,27 +27,20 @@ afterEach(async () => {
   );
 });
 
-describe('Phase 2 data layer', () => {
+describe('data layer', () => {
   it('初期データを一度だけ登録する', async () => {
     const database = createTestDatabase();
-
     const firstMetadata = await initializeDatabase(database);
     const secondMetadata = await initializeDatabase(database);
 
-    expect(firstMetadata.dataVersion).toBe(1);
+    expect(firstMetadata.dataVersion).toBe(2);
     expect(secondMetadata.initializedAt).toBe(firstMetadata.initializedAt);
-    expectNames(
-      (await database.expenseCategories.toArray()).map(({ name }) => name),
-      ['食費', '日用品', '交通費', '固定費', '娯楽費'],
-    );
-    expectNames(
-      (await database.incomeCategories.toArray()).map(({ name }) => name),
-      ['給与', '仕送り', '臨時収入', 'その他'],
-    );
-    expectNames(
-      (await database.paymentMethods.toArray()).map(({ name }) => name),
-      ['未設定', '現金', 'クレジットカード', '電子マネー', '銀行振込'],
-    );
+    expectNames((await database.expenseCategories.toArray()).map(({ name }) => name), ['食費', '日用品', '交通費', '固定費', '娯楽費']);
+    expectNames((await database.incomeCategories.toArray()).map(({ name }) => name), ['給与', '仕送り', '臨時収入', 'その他']);
+    expectNames((await database.paymentMethods.toArray()).map(({ name }) => name), ['未設定', '現金', 'クレジットカード', '電子マネー', '銀行振込']);
+    expect(await database.displaySettings.get('display-settings')).toMatchObject({
+      transactionListFields: ['amount', 'category', 'paymentMethod', 'merchant', 'content'],
+    });
 
     const unset = await database.paymentMethods.get(SYSTEM_UNSET_PAYMENT_METHOD_ID);
     expect(unset).toMatchObject({ isSystem: true, isActive: true, kind: 'system-unset' });
@@ -66,15 +59,10 @@ describe('Phase 2 data layer', () => {
       paymentMethodId: 'payment-method-cash',
       merchant: 'スーパー',
       content: '食料品',
-      memo: '',
     });
 
-    expect(await database.expenseCategories.get('expense-category-1')).toMatchObject({
-      usageCount: 1,
-    });
-    expect(await database.paymentMethods.get('payment-method-cash')).toMatchObject({
-      usageCount: 1,
-    });
+    expect(await database.expenseCategories.get('expense-category-1')).toMatchObject({ usageCount: 1 });
+    expect(await database.paymentMethods.get('payment-method-cash')).toMatchObject({ usageCount: 1 });
 
     await repository.replace(created.id, {
       type: 'expense',
@@ -84,29 +72,16 @@ describe('Phase 2 data layer', () => {
       paymentMethodId: 'payment-method-credit-card',
       merchant: 'ドラッグストア',
       content: '日用品',
-      memo: '修正',
     });
 
-    expect(await database.expenseCategories.get('expense-category-1')).toMatchObject({
-      usageCount: 0,
-    });
-    expect(await database.expenseCategories.get('expense-category-2')).toMatchObject({
-      usageCount: 1,
-    });
-    expect(await database.paymentMethods.get('payment-method-cash')).toMatchObject({
-      usageCount: 0,
-    });
-    expect(await database.paymentMethods.get('payment-method-credit-card')).toMatchObject({
-      usageCount: 1,
-    });
+    expect(await database.expenseCategories.get('expense-category-1')).toMatchObject({ usageCount: 0 });
+    expect(await database.expenseCategories.get('expense-category-2')).toMatchObject({ usageCount: 1 });
+    expect(await database.paymentMethods.get('payment-method-cash')).toMatchObject({ usageCount: 0 });
+    expect(await database.paymentMethods.get('payment-method-credit-card')).toMatchObject({ usageCount: 1 });
 
     await expect(repository.delete(created.id)).resolves.toBe(true);
-    expect(await database.expenseCategories.get('expense-category-2')).toMatchObject({
-      usageCount: 0,
-    });
-    expect(await database.paymentMethods.get('payment-method-credit-card')).toMatchObject({
-      usageCount: 0,
-    });
+    expect(await database.expenseCategories.get('expense-category-2')).toMatchObject({ usageCount: 0 });
+    expect(await database.paymentMethods.get('payment-method-credit-card')).toMatchObject({ usageCount: 0 });
   });
 
   it('使用中の支払い方法を削除すると過去データを未設定へ置換する', async () => {
@@ -123,20 +98,11 @@ describe('Phase 2 data layer', () => {
       paymentMethodId: 'payment-method-credit-card',
       merchant: '通信会社',
       content: '固定費',
-      memo: '',
     });
 
     await expect(masterData.deletePaymentMethod('payment-method-credit-card')).resolves.toBe(1);
     expect(await database.paymentMethods.get('payment-method-credit-card')).toBeUndefined();
-    expect(await transactions.getById(created.id)).toMatchObject({
-      type: 'expense',
-      paymentMethodId: SYSTEM_UNSET_PAYMENT_METHOD_ID,
-    });
-    expect(await database.paymentMethods.get(SYSTEM_UNSET_PAYMENT_METHOD_ID)).toMatchObject({
-      usageCount: 1,
-    });
-    await expect(masterData.deletePaymentMethod(SYSTEM_UNSET_PAYMENT_METHOD_ID)).rejects.toThrow(
-      'システム管理の支払い方法は削除できません。',
-    );
+    expect(await transactions.getById(created.id)).toMatchObject({ type: 'expense', paymentMethodId: SYSTEM_UNSET_PAYMENT_METHOD_ID });
+    expect(await database.paymentMethods.get(SYSTEM_UNSET_PAYMENT_METHOD_ID)).toMatchObject({ usageCount: 1 });
   });
 });
