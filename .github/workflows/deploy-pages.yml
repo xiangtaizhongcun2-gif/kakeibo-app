@@ -35,6 +35,13 @@ jobs:
         run: npm run test
       - name: Build
         run: npm run build
+      - name: Verify static PWA assets
+        run: |
+          test -f dist/manifest.webmanifest
+          test -f dist/sw.js
+          test -f dist/legacy/index.html
+          test -f dist/legacy/app.js
+          test -f dist/legacy/styles.css
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
