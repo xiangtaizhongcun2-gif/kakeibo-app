@@ -18,4 +18,14 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'アプリ情報' })).toBeInTheDocument();
     expect(settings).toHaveAttribute('aria-current', 'page');
   });
+
+  it('旧版のLocalStorageデータへアクセスできる導線を表示する', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: '設定' }));
+    expect(screen.getByRole('link', { name: '旧版の家計簿を開く' })).toHaveAttribute(
+      'href',
+      '/legacy/',
+    );
+  });
 });
