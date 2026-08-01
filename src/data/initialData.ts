@@ -10,7 +10,7 @@ import type {
 } from '../domain/models';
 import { DATABASE_VERSION } from './database';
 
-export const CURRENT_DATA_VERSION = 1;
+export const CURRENT_DATA_VERSION = 2;
 export const SYSTEM_UNSET_PAYMENT_METHOD_ID = 'payment-method-unset';
 
 const EXPENSE_CATEGORY_NAMES = ['食費', '日用品', '交通費', '固定費', '娯楽費'] as const;
@@ -106,7 +106,7 @@ export function createInitialData(now: UtcIsoDateTime): InitialData {
     paymentMethods,
     displaySettings: {
       id: 'display-settings',
-      transactionListFields: ['date', 'category', 'paymentMethod', 'merchant', 'content', 'memo'],
+      transactionListFields: ['amount', 'category', 'paymentMethod', 'merchant', 'content'],
       showFilteredSummary: true,
       themeMode: 'system',
       updatedAt: now,

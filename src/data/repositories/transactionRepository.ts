@@ -123,9 +123,7 @@ export class TransactionRepository {
     createdAt: UtcIsoDateTime,
     updatedAt: UtcIsoDateTime,
   ): Transaction {
-    if (input.type === 'expense') {
-      return { ...input, id, createdAt, updatedAt };
-    }
+    if (input.type === 'expense') return { ...input, id, createdAt, updatedAt };
     return { ...input, id, createdAt, updatedAt };
   }
 

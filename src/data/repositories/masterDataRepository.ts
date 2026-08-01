@@ -94,24 +94,32 @@ export class MasterDataRepository {
     return paymentMethod;
   }
 
-  async archiveExpenseCategory(id: string): Promise<void> {
+  async setExpenseCategoryActive(id: string, isActive: boolean): Promise<void> {
     const category = await this.database.expenseCategories.get(id);
     if (category === undefined) throw new Error('支出カテゴリが見つかりません。');
-    if (category.isSystem) throw new Error('システム管理のカテゴリは無効化できません。');
+    if (category.isSystem) throw new Error('システム管理のカテゴリは変更できません。');
     await this.database.expenseCategories.update(id, {
-      isActive: false,
+      isActive,
       updatedAt: currentUtcIsoDateTime(),
     });
   }
 
-  async archiveIncomeCategory(id: string): Promise<void> {
+  async setIncomeCategoryActive(id: string, isActive: boolean): Promise<void> {
     const category = await this.database.incomeCategories.get(id);
     if (category === undefined) throw new Error('収入カテゴリが見つかりません。');
-    if (category.isSystem) throw new Error('システム管理のカテゴリは無効化できません。');
+    if (category.isSystem) throw new Error('システム管理のカテゴリは変更できません。');
     await this.database.incomeCategories.update(id, {
-      isActive: false,
+      isActive,
       updatedAt: currentUtcIsoDateTime(),
     });
+  }
+
+  async archiveExpenseCategory(id: string): Promise<void> {
+    await this.setExpenseCategoryActive(id, false);
+  }
+
+  async archiveIncomeCategory(id: string): Promise<void> {
+    await this.setIncomeCategoryActive(id, false);
   }
 
   async deletePaymentMethod(id: string): Promise<number> {
