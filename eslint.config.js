@@ -24,5 +24,24 @@ export default tseslint.config(
   {
     files: ['vite.config.ts', 'build/**/*.ts'],
     languageOptions: { globals: { process: 'readonly' } }
+  },
+  {
+    files: ['public/legacy/**/*.js'],
+    languageOptions: {
+      globals: {
+        alert: 'readonly',
+        Blob: 'readonly',
+        confirm: 'readonly',
+        crypto: 'readonly',
+        document: 'readonly',
+        FileReader: 'readonly',
+        localStorage: 'readonly',
+        setTimeout: 'readonly',
+        URL: 'readonly'
+      }
+    },
+    rules: {
+      '@typescript-eslint/no-unused-expressions': 'off'
+    }
   }
 );
