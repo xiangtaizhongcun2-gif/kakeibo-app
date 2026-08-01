@@ -18,7 +18,6 @@ interface TransactionBase extends EntityTimestamps {
   amountYen: MoneyYen;
   date: LocalDate;
   content: string;
-  memo: string;
 }
 
 export interface ExpenseTransaction extends TransactionBase {
@@ -107,12 +106,11 @@ export type NotificationState =
   | CategoryBudgetNotificationState;
 
 export type TransactionListField =
-  | 'date'
+  | 'amount'
   | 'category'
   | 'paymentMethod'
   | 'merchant'
-  | 'content'
-  | 'memo';
+  | 'content';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
