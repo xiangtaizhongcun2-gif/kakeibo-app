@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import type { Transaction } from '../../domain/models';
 import type { NewTransaction } from '../../data/repositories/transactionRepository';
 import {
@@ -18,7 +18,10 @@ interface TransactionFormProps {
   onCancel?: () => void;
 }
 
-function fieldError(errors: TransactionFormErrors, key: keyof TransactionFormErrors): string | undefined {
+function fieldError(
+  errors: TransactionFormErrors,
+  key: keyof TransactionFormErrors,
+): string | undefined {
   return errors[key];
 }
 
@@ -29,6 +32,18 @@ export function TransactionForm({
   onSubmit,
   onCancel,
 }: TransactionFormProps): React.JSX.Element {
+  const formId = useId();
+  const amountId = `${formId}-amount`;
+  const amountErrorId = `${formId}-amount-error`;
+  const dateId = `${formId}-date`;
+  const dateErrorId = `${formId}-date-error`;
+  const categoryId = `${formId}-category`;
+  const categoryErrorId = `${formId}-category-error`;
+  const paymentMethodId = `${formId}-payment-method`;
+  const paymentMethodErrorId = `${formId}-payment-method-error`;
+  const merchantId = `${formId}-merchant`;
+  const contentId = `${formId}-content`;
+
   const [state, setState] = useState<TransactionFormState>(() =>
     createFormState(masterData, transaction),
   );
@@ -75,7 +90,9 @@ export function TransactionForm({
           type="button"
           className={state.type === 'expense' ? 'active' : ''}
           aria-pressed={state.type === 'expense'}
-          onClick={() => setState((current) => changeFormType(current, 'expense', masterData))}
+          onClick={() =>
+            setState((current) => changeFormType(current, 'expense', masterData))
+          }
         >
           支出
         </button>
@@ -83,17 +100,20 @@ export function TransactionForm({
           type="button"
           className={state.type === 'income' ? 'active' : ''}
           aria-pressed={state.type === 'income'}
-          onClick={() => setState((current) => changeFormType(current, 'income', masterData))}
+          onClick={() =>
+            setState((current) => changeFormType(current, 'income', masterData))
+          }
         >
           収入
         </button>
       </div>
 
-      <label className="form-field">
-        <span>金額</span>
+      <div className="form-field">
+        <label htmlFor={amountId}>金額</label>
         <div className="money-field">
           <span aria-hidden="true">¥</span>
           <input
+            id={amountId}
             name="amount"
             type="number"
             inputMode="numeric"
@@ -102,65 +122,81 @@ export function TransactionForm({
             value={state.amount}
             onChange={(event) => update('amount', event.currentTarget.value)}
             aria-invalid={fieldError(errors, 'amount') !== undefined}
-            aria-describedby={fieldError(errors, 'amount') === undefined ? undefined : 'amount-error'}
+            aria-describedby={
+              fieldError(errors, 'amount') === undefined ? undefined : amountErrorId
+            }
             required
           />
         </div>
         {fieldError(errors, 'amount') !== undefined && (
-          <small className="field-error" id="amount-error">
+          <small className="field-error" id={amountErrorId}>
             {fieldError(errors, 'amount')}
           </small>
         )}
-      </label>
+      </div>
 
-      <label className="form-field">
-        <span>日付</span>
+      <div className="form-field">
+        <label htmlFor={dateId}>日付</label>
         <input
+          id={dateId}
           name="date"
           type="date"
           value={state.date}
           onChange={(event) => update('date', event.currentTarget.value)}
           aria-invalid={fieldError(errors, 'date') !== undefined}
-          aria-describedby={fieldError(errors, 'date') === undefined ? undefined : 'date-error'}
+          aria-describedby={fieldError(errors, 'date') === undefined ? undefined : dateErrorId}
           required
         />
         {fieldError(errors, 'date') !== undefined && (
-          <small className="field-error" id="date-error">
+          <small className="field-error" id={dateErrorId}>
             {fieldError(errors, 'date')}
           </small>
         )}
-      </label>
+      </div>
 
-      <label className="form-field">
-        <span>カテゴリ</span>
+      <div className="form-field">
+        <label htmlFor={categoryId}>カテゴリ</label>
         <select
+          id={categoryId}
           name="category"
           value={state.categoryId}
           onChange={(event) => update('categoryId', event.currentTarget.value)}
           aria-invalid={fieldError(errors, 'categoryId') !== undefined}
+          aria-describedby={
+            fieldError(errors, 'categoryId') === undefined ? undefined : categoryErrorId
+          }
           required
         >
           <option value="">選択してください</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id} disabled={!category.isActive}>
-              {category.name}{category.isActive ? '' : '（非表示）'}
+              {category.name}
+              {category.isActive ? '' : '（非表示）'}
             </option>
           ))}
         </select>
         {fieldError(errors, 'categoryId') !== undefined && (
-          <small className="field-error">{fieldError(errors, 'categoryId')}</small>
+          <small className="field-error" id={categoryErrorId}>
+            {fieldError(errors, 'categoryId')}
+          </small>
         )}
-      </label>
+      </div>
 
       {state.type === 'expense' && (
         <>
-          <label className="form-field">
-            <span>支払い方法</span>
+          <div className="form-field">
+            <label htmlFor={paymentMethodId}>支払い方法</label>
             <select
+              id={paymentMethodId}
               name="paymentMethod"
               value={state.paymentMethodId}
               onChange={(event) => update('paymentMethodId', event.currentTarget.value)}
               aria-invalid={fieldError(errors, 'paymentMethodId') !== undefined}
+              aria-describedby={
+                fieldError(errors, 'paymentMethodId') === undefined
+                  ? undefined
+                  : paymentMethodErrorId
+              }
               required
             >
               <option value="">選択してください</option>
@@ -175,13 +211,18 @@ export function TransactionForm({
               ))}
             </select>
             {fieldError(errors, 'paymentMethodId') !== undefined && (
-              <small className="field-error">{fieldError(errors, 'paymentMethodId')}</small>
+              <small className="field-error" id={paymentMethodErrorId}>
+                {fieldError(errors, 'paymentMethodId')}
+              </small>
             )}
-          </label>
+          </div>
 
-          <label className="form-field">
-            <span>店名 <small>任意</small></span>
+          <div className="form-field">
+            <label htmlFor={merchantId}>
+              店名 <small>任意</small>
+            </label>
             <input
+              id={merchantId}
               name="merchant"
               type="text"
               maxLength={80}
@@ -189,13 +230,16 @@ export function TransactionForm({
               onChange={(event) => update('merchant', event.currentTarget.value)}
               placeholder="例：スーパー"
             />
-          </label>
+          </div>
         </>
       )}
 
-      <label className="form-field">
-        <span>内容 <small>任意</small></span>
+      <div className="form-field">
+        <label htmlFor={contentId}>
+          内容 <small>任意</small>
+        </label>
         <input
+          id={contentId}
           name="content"
           type="text"
           maxLength={120}
@@ -203,9 +247,13 @@ export function TransactionForm({
           onChange={(event) => update('content', event.currentTarget.value)}
           placeholder={state.type === 'expense' ? '例：食料品' : '例：8月分'}
         />
-      </label>
+      </div>
 
-      {formError !== '' && <p className="form-error" role="alert">{formError}</p>}
+      {formError !== '' && (
+        <p className="form-error" role="alert">
+          {formError}
+        </p>
+      )}
 
       <div className="form-actions">
         {onCancel !== undefined && (
