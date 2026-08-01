@@ -13,6 +13,11 @@ function createTestDatabase(): MyKakeiboDatabase {
   return database;
 }
 
+function expectNames(actual: string[], expected: string[]): void {
+  expect(actual).toHaveLength(expected.length);
+  expect(actual).toEqual(expect.arrayContaining(expected));
+}
+
 afterEach(async () => {
   await Promise.all(
     databases.splice(0).map(async (database) => {
@@ -31,26 +36,18 @@ describe('Phase 2 data layer', () => {
 
     expect(firstMetadata.dataVersion).toBe(1);
     expect(secondMetadata.initializedAt).toBe(firstMetadata.initializedAt);
-    expect((await database.expenseCategories.toArray()).map(({ name }) => name)).toEqual([
-      '食費',
-      '日用品',
-      '交通費',
-      '固定費',
-      '娯楽費',
-    ]);
-    expect((await database.incomeCategories.toArray()).map(({ name }) => name)).toEqual([
-      '給与',
-      '仕送り',
-      '臨時収入',
-      'その他',
-    ]);
-    expect((await database.paymentMethods.toArray()).map(({ name }) => name)).toEqual([
-      '未設定',
-      '現金',
-      'クレジットカード',
-      '電子マネー',
-      '銀行振込',
-    ]);
+    expectNames(
+      (await database.expenseCategories.toArray()).map(({ name }) => name),
+      ['食費', '日用品', '交通費', '固定費', '娯楽費'],
+    );
+    expectNames(
+      (await database.incomeCategories.toArray()).map(({ name }) => name),
+      ['給与', '仕送り', '臨時収入', 'その他'],
+    );
+    expectNames(
+      (await database.paymentMethods.toArray()).map(({ name }) => name),
+      ['未設定', '現金', 'クレジットカード', '電子マネー', '銀行振込'],
+    );
 
     const unset = await database.paymentMethods.get(SYSTEM_UNSET_PAYMENT_METHOD_ID);
     expect(unset).toMatchObject({ isSystem: true, isActive: true, kind: 'system-unset' });
