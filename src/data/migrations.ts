@@ -15,6 +15,9 @@ export async function runDataMigrations(
 
   while (dataVersion < CURRENT_DATA_VERSION) {
     switch (dataVersion) {
+      case 0:
+        dataVersion = 1;
+        break;
       default:
         throw new Error(`未対応のデータバージョンです: ${dataVersion}`);
     }
