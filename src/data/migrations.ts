@@ -39,8 +39,8 @@ export async function runDataMigrations(
         if (settings !== undefined) {
           const previousFields = settings.transactionListFields as readonly string[];
           const retainedFields = previousFields.filter(isTransactionListField);
-          const transactionListFields = retainedFields.includes('amount')
-            ? retainedFields
+          const transactionListFields: TransactionListField[] = retainedFields.includes('amount')
+            ? [...retainedFields]
             : ['amount', ...retainedFields];
 
           await database.displaySettings.put({
