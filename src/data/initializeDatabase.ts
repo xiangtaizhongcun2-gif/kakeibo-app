@@ -12,13 +12,15 @@ export async function initializeDatabase(
 
   return database.transaction(
     'rw',
-    database.expenseCategories,
-    database.incomeCategories,
-    database.paymentMethods,
-    database.displaySettings,
-    database.notificationSettings,
-    database.onboardingStates,
-    database.appMetadata,
+    [
+      database.expenseCategories,
+      database.incomeCategories,
+      database.paymentMethods,
+      database.displaySettings,
+      database.notificationSettings,
+      database.onboardingStates,
+      database.appMetadata,
+    ],
     async () => {
       const existingMetadata = await database.appMetadata.get('metadata');
 
