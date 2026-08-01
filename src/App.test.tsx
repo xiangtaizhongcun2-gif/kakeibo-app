@@ -25,7 +25,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: '設定' }));
     expect(screen.getByRole('link', { name: '旧版の家計簿を開く' })).toHaveAttribute(
       'href',
-      '/legacy/',
+      '/legacy/index.html',
     );
   });
 });
