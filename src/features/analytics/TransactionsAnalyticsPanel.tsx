@@ -3,6 +3,7 @@ import type { Transaction } from '../../domain/models';
 import type { TransactionMasterData } from '../transactions/transactionModel';
 import { PaymentMethodBreakdown, SummaryCards } from './AnalyticsPanels';
 import { aggregateTransactions } from './analyticsModel';
+import './transactionsAnalytics.css';
 
 export function TransactionsAnalyticsPanel({
   transactions,
