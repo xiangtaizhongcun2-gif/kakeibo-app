@@ -15,6 +15,7 @@ iPhoneのSafariからホーム画面へ追加して使う、自分専用の家�
 - GitHub Pagesのサブパス対応
 - GitHub Actionsによるテスト・ビルド・自動デプロイ
 - Vitest + React Testing Library
+- React移行前のLocalStorageデータを確認・書き出しできる旧版互換画面
 
 収支登録、IndexedDB、集計、予算、通知、CSV、PDF、バックアップは後続フェーズで実装します。
 
@@ -65,6 +66,12 @@ Viteの`base`、manifestの`start_url`と`scope`は、GitHub Actions上で`GITHU
 4. 名前を確認して**追加**をタップします。
 
 初回アクセスより前、またはService Workerのキャッシュが作成される前は、オフラインで起動できません。
+
+## 旧版データへのアクセス
+
+React移行前の家計簿は、同じオリジンのLocalStorageに`kurashi-kakeibo-v1`として記録していました。Phase 1ではこのデータを自動削除・自動変換しません。
+
+新しいアプリの **設定 > 旧版データ > 旧版の家計簿を開く** から互換画面を開き、以前の記録を確認したりJSONとして書き出したりできます。Phase 2以降でIndexedDBへの安全な移行方法を設計するまでは、旧版データを残してください。
 
 ## データ保存とプライバシー
 
