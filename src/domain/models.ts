@@ -83,6 +83,13 @@ export interface CategoryBudget extends EntityTimestamps {
   effectiveAmountYen: MoneyYen;
 }
 
+export interface BudgetSettings {
+  id: 'budget-settings';
+  monthlyCarryoverEnabled: boolean;
+  categoryCarryoverEnabled: boolean;
+  updatedAt: UtcIsoDateTime;
+}
+
 interface NotificationStateBase {
   id: string;
   monthKey: MonthKey;
