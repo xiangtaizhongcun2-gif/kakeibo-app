@@ -10,6 +10,11 @@ import { AppShell } from './components/AppShell';
 import { PwaUpdateBanner } from './components/PwaUpdateBanner';
 import { HomePage } from './features/analytics/HomePage';
 import { BudgetPage } from './features/budget/BudgetPage';
+import {
+  browserExportGateway,
+  type ExportGateway,
+} from './features/export/browserExportGateway';
+import { ExportPanel } from './features/export/ExportPanel';
 import { BudgetAlertBanner } from './features/notifications/BudgetAlertBanner';
 import {
   browserSystemNotificationGateway,
@@ -33,6 +38,7 @@ interface AppReferenceData extends TransactionMasterData {
 interface AppProps {
   services?: AppServices;
   notificationGateway?: SystemNotificationGateway;
+  exportGateway?: ExportGateway;
 }
 
 function readTab(): AppTabId {
@@ -43,6 +49,7 @@ function readTab(): AppTabId {
 export function App({
   services = defaultAppServices,
   notificationGateway = browserSystemNotificationGateway,
+  exportGateway = browserExportGateway,
 }: AppProps): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<AppTabId>(readTab);
   const [referenceData, setReferenceData] = useState<AppReferenceData | null>(null);
@@ -191,6 +198,7 @@ export function App({
           displaySettings={referenceData.displaySettings}
           monthKey={selectedMonth}
           revision={revision}
+          exportGateway={exportGateway}
           onMonthChange={setSelectedMonth}
           onChanged={handleDataChanged}
         />
@@ -234,6 +242,14 @@ export function App({
           settingsRepository={services.settings}
           gateway={notificationGateway}
           onChanged={handleSettingsChanged}
+        />
+        <ExportPanel
+          transactionRepository={services.transactions}
+          budgetRepository={services.budgets}
+          masterData={referenceData}
+          initialMonthKey={selectedMonth}
+          revision={revision}
+          gateway={exportGateway}
         />
         <SettingsPage
           masterData={referenceData}
