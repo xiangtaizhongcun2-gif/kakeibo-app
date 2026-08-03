@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { DisplaySettings, MonthKey } from './domain/models';
+import type { BudgetSettings, DisplaySettings, MonthKey } from './domain/models';
 import { APP_TABS, isAppTabId, type AppTabId } from './app/tabs';
 import { defaultAppServices, type AppServices } from './app/services';
 import { AppShell } from './components/AppShell';
 import { PwaUpdateBanner } from './components/PwaUpdateBanner';
 import { HomePage } from './features/analytics/HomePage';
+import { BudgetPage } from './features/budget/BudgetPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { RegisterPage } from './features/transactions/RegisterPage';
 import { TransactionsPage } from './features/transactions/TransactionsPage';
@@ -15,6 +16,7 @@ import {
 
 interface AppReferenceData extends TransactionMasterData {
   displaySettings: DisplaySettings;
+  budgetSettings: BudgetSettings;
 }
 
 interface AppProps {
@@ -24,10 +26,6 @@ interface AppProps {
 function readTab(): AppTabId {
   const value = window.location.hash.replace(/^#\/?/, '');
   return isAppTabId(value) ? value : 'home';
-}
-
-function EmptyPage({ title, text }: { title: string; text: string }): React.JSX.Element {
-  return <section className="empty-panel"><h2>{title}</h2><p>{text}</p></section>;
 }
 
 export function App({ services = defaultAppServices }: AppProps): React.JSX.Element {
@@ -41,18 +39,25 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
   const loadReferenceData = useCallback(async (): Promise<void> => {
     setReferenceError('');
     try {
-      const [expenseCategories, incomeCategories, paymentMethods, displaySettings] =
-        await Promise.all([
-          services.masterData.listExpenseCategories(true),
-          services.masterData.listIncomeCategories(true),
-          services.masterData.listPaymentMethods(true),
-          services.settings.getDisplaySettings(),
-        ]);
+      const [
+        expenseCategories,
+        incomeCategories,
+        paymentMethods,
+        displaySettings,
+        budgetSettings,
+      ] = await Promise.all([
+        services.masterData.listExpenseCategories(true),
+        services.masterData.listIncomeCategories(true),
+        services.masterData.listPaymentMethods(true),
+        services.settings.getDisplaySettings(),
+        services.budgets.getSettings(),
+      ]);
       setReferenceData({
         expenseCategories,
         incomeCategories,
         paymentMethods,
         displaySettings,
+        budgetSettings,
       });
     } catch (error: unknown) {
       setReferenceError(
@@ -82,6 +87,11 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
     void loadReferenceData();
   };
 
+  const handleSettingsChanged = async (): Promise<void> => {
+    await loadReferenceData();
+    setRevision((current) => current + 1);
+  };
+
   const page = (): React.JSX.Element => {
     if (referenceError !== '') {
       return (
@@ -107,6 +117,7 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
       return (
         <HomePage
           repository={services.transactions}
+          budgetRepository={services.budgets}
           masterData={referenceData}
           monthKey={selectedMonth}
           revision={revision}
@@ -147,16 +158,28 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
     }
 
     if (activeTab === 'budget') {
-      return <EmptyPage title="予算" text="予算機能はPhase 5で実装します。" />;
+      return (
+        <BudgetPage
+          budgetRepository={services.budgets}
+          transactionRepository={services.transactions}
+          expenseCategories={referenceData.expenseCategories}
+          monthKey={selectedMonth}
+          revision={revision}
+          onMonthChange={setSelectedMonth}
+          onChanged={handleDataChanged}
+        />
+      );
     }
 
     return (
       <SettingsPage
         masterData={referenceData}
         displaySettings={referenceData.displaySettings}
+        budgetSettings={referenceData.budgetSettings}
         masterDataRepository={services.masterData}
         settingsRepository={services.settings}
-        onChanged={loadReferenceData}
+        budgetRepository={services.budgets}
+        onChanged={handleSettingsChanged}
       />
     );
   };
