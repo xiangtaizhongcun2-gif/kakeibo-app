@@ -89,6 +89,14 @@ export interface BudgetSettings {
   updatedAt: UtcIsoDateTime;
 }
 
+export interface SavingsSettings {
+  id: 'savings-settings';
+  balanceYen: MoneyYen;
+  goalName: string;
+  goalAmountYen: MoneyYen | null;
+  updatedAt: UtcIsoDateTime;
+}
+
 interface NotificationStateBase {
   id: string;
   monthKey: MonthKey;
