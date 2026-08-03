@@ -139,7 +139,7 @@ describe('App', () => {
     );
   });
 
-  it('支出を登録して月別一覧と集計へ表示する', async () => {
+  it('支出を登録後も登録タブに残り、収支一覧と集計へ反映する', async () => {
     const user = userEvent.setup();
     render(<App services={services} />);
 
@@ -154,11 +154,17 @@ describe('App', () => {
     await user.type(screen.getByLabelText(/内容/), '食料品');
     await user.click(screen.getByRole('button', { name: '登録する' }));
 
-    expect(await screen.findByText('収支を登録しました。')).toBeInTheDocument();
+    expect(
+      await screen.findByText('収支を登録しました。続けて登録できます。'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '収支を登録' })).toBeInTheDocument();
+    expect(screen.getByLabelText('金額')).toHaveValue(null);
+    await waitFor(async () => expect(await database.transactions.count()).toBe(1));
+
+    await user.click(screen.getByRole('button', { name: '収支一覧' }));
     expect(await screen.findByText('スーパー')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '表示中の収支集計' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '表示中の支払い方法別' })).toBeInTheDocument();
-    await waitFor(async () => expect(await database.transactions.count()).toBe(1));
   });
 
   it('削除前に確認画面を表示し、確定後に削除する', async () => {
