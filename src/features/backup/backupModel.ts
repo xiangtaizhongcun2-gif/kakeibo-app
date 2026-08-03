@@ -552,7 +552,7 @@ export function parseBackupJson(
     'data.paymentMethods',
     validatePaymentMethod,
   );
-  const monthlyBudgets = validateArrayItems(
+  validateArrayItems(
     required(dataSource, 'monthlyBudgets', 'backup.data'),
     'data.monthlyBudgets',
     validateMonthlyBudget,
