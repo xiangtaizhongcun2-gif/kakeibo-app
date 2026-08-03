@@ -236,9 +236,7 @@ export function App({
             setSelectedMonth(monthKey);
             setRevision((current) => current + 1);
             void loadReferenceData();
-            setStatusMessage('収支を登録しました。');
-            window.location.hash = '#/transactions';
-            setActiveTab('transactions');
+            setStatusMessage('収支を登録しました。続けて登録できます。');
           }}
         />
       );
