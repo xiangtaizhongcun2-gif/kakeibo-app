@@ -45,6 +45,7 @@ export function ExportPanel({
   const [startDate, setStartDate] = useState<string>(initialRange.startDate);
   const [endDate, setEndDate] = useState<string>(initialRange.endDate);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBudgetLoading, setIsBudgetLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -77,6 +78,8 @@ export function ExportPanel({
 
   useEffect(() => {
     let disposed = false;
+    setMonthlyBudget(null);
+    setIsBudgetLoading(true);
     try {
       const validMonthKey = toMonthKey(monthKey);
       void budgetRepository
@@ -86,16 +89,18 @@ export function ExportPanel({
         })
         .catch((caught: unknown) => {
           if (!disposed) {
-            setMonthlyBudget(null);
             setError(
               caught instanceof Error
                 ? caught.message
                 : '月予算を読み込めませんでした。',
             );
           }
+        })
+        .finally(() => {
+          if (!disposed) setIsBudgetLoading(false);
         });
     } catch {
-      setMonthlyBudget(null);
+      setIsBudgetLoading(false);
     }
 
     return () => {
@@ -221,7 +226,7 @@ export function ExportPanel({
           <button
             type="button"
             className="primary-button"
-            disabled={isLoading}
+            disabled={isLoading || isBudgetLoading}
             onClick={openMonthlyPdf}
           >
             PDFとして保存
