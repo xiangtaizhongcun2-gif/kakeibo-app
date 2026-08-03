@@ -14,7 +14,7 @@ import {
   toPositiveMoneyYen,
 } from '../../domain/valueObjects';
 import { appDatabase, type MyKakeiboDatabase } from '../database';
-import { recalculateAllBudgets } from './budgetRepository';
+import { recalculateMonthlyBudgets } from './budgetRepository';
 
 export type NewExpenseTransaction = Omit<ExpenseTransaction, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewIncomeTransaction = Omit<IncomeTransaction, 'id' | 'createdAt' | 'updatedAt'>;
@@ -65,14 +65,13 @@ export class TransactionRepository {
       this.database.incomeCategories,
       this.database.paymentMethods,
       this.database.monthlyBudgets,
-      this.database.categoryBudgets,
       this.database.budgetSettings,
       async () => {
         await this.assertReferencesAreUsable(transaction);
         await this.database.transactions.add(transaction);
         await this.changeUsageCounts(transaction, 1, now);
         if (transaction.type === 'expense') {
-          await recalculateAllBudgets(this.database, now);
+          await recalculateMonthlyBudgets(this.database, now);
         }
       },
     );
@@ -91,7 +90,6 @@ export class TransactionRepository {
       this.database.incomeCategories,
       this.database.paymentMethods,
       this.database.monthlyBudgets,
-      this.database.categoryBudgets,
       this.database.budgetSettings,
       async () => {
         const existing = await this.database.transactions.get(id);
@@ -103,7 +101,7 @@ export class TransactionRepository {
         await this.database.transactions.put(replacement);
         await this.changeUsageCounts(replacement, 1, now);
         if (existing.type === 'expense' || replacement.type === 'expense') {
-          await recalculateAllBudgets(this.database, now);
+          await recalculateMonthlyBudgets(this.database, now);
         }
         return replacement;
       },
@@ -120,7 +118,6 @@ export class TransactionRepository {
       this.database.incomeCategories,
       this.database.paymentMethods,
       this.database.monthlyBudgets,
-      this.database.categoryBudgets,
       this.database.budgetSettings,
       async () => {
         const existing = await this.database.transactions.get(id);
@@ -129,7 +126,7 @@ export class TransactionRepository {
         await this.database.transactions.delete(id);
         await this.changeUsageCounts(existing, -1, now);
         if (existing.type === 'expense') {
-          await recalculateAllBudgets(this.database, now);
+          await recalculateMonthlyBudgets(this.database, now);
         }
         return true;
       },
