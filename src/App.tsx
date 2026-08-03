@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { BudgetSettings, DisplaySettings, MonthKey } from './domain/models';
+import type { DisplaySettings, MonthKey } from './domain/models';
 import { APP_TABS, isAppTabId, type AppTabId } from './app/tabs';
 import { defaultAppServices, type AppServices } from './app/services';
 import { AppShell } from './components/AppShell';
@@ -16,7 +16,6 @@ import {
 
 interface AppReferenceData extends TransactionMasterData {
   displaySettings: DisplaySettings;
-  budgetSettings: BudgetSettings;
 }
 
 interface AppProps {
@@ -39,25 +38,18 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
   const loadReferenceData = useCallback(async (): Promise<void> => {
     setReferenceError('');
     try {
-      const [
-        expenseCategories,
-        incomeCategories,
-        paymentMethods,
-        displaySettings,
-        budgetSettings,
-      ] = await Promise.all([
-        services.masterData.listExpenseCategories(true),
-        services.masterData.listIncomeCategories(true),
-        services.masterData.listPaymentMethods(true),
-        services.settings.getDisplaySettings(),
-        services.budgets.getSettings(),
-      ]);
+      const [expenseCategories, incomeCategories, paymentMethods, displaySettings] =
+        await Promise.all([
+          services.masterData.listExpenseCategories(true),
+          services.masterData.listIncomeCategories(true),
+          services.masterData.listPaymentMethods(true),
+          services.settings.getDisplaySettings(),
+        ]);
       setReferenceData({
         expenseCategories,
         incomeCategories,
         paymentMethods,
         displaySettings,
-        budgetSettings,
       });
     } catch (error: unknown) {
       setReferenceError(
@@ -85,11 +77,6 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
   const handleDataChanged = (): void => {
     setRevision((current) => current + 1);
     void loadReferenceData();
-  };
-
-  const handleSettingsChanged = async (): Promise<void> => {
-    await loadReferenceData();
-    setRevision((current) => current + 1);
   };
 
   const page = (): React.JSX.Element => {
@@ -122,6 +109,7 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
           monthKey={selectedMonth}
           revision={revision}
           onMonthChange={setSelectedMonth}
+          onOpenBudget={() => navigate('budget')}
         />
       );
     }
@@ -162,7 +150,6 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
         <BudgetPage
           budgetRepository={services.budgets}
           transactionRepository={services.transactions}
-          expenseCategories={referenceData.expenseCategories}
           monthKey={selectedMonth}
           revision={revision}
           onMonthChange={setSelectedMonth}
@@ -175,11 +162,9 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
       <SettingsPage
         masterData={referenceData}
         displaySettings={referenceData.displaySettings}
-        budgetSettings={referenceData.budgetSettings}
         masterDataRepository={services.masterData}
         settingsRepository={services.settings}
-        budgetRepository={services.budgets}
-        onChanged={handleSettingsChanged}
+        onChanged={loadReferenceData}
       />
     );
   };
