@@ -52,7 +52,13 @@ function moveCategory<T extends OrderedCategory>(
   if (targetIndex < 0 || targetIndex >= categories.length) return null;
 
   const next = [...categories];
-  [next[currentIndex], next[targetIndex]] = [next[targetIndex], next[currentIndex]];
+  const currentCategory = next[currentIndex];
+  const targetCategory = next[targetIndex];
+  if (currentCategory === undefined || targetCategory === undefined) {
+    throw new Error('カテゴリの順番を変更できませんでした。');
+  }
+  next[currentIndex] = targetCategory;
+  next[targetIndex] = currentCategory;
   return next;
 }
 
