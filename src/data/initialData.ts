@@ -1,5 +1,6 @@
 import type {
   AppMetadata,
+  BudgetSettings,
   DisplaySettings,
   ExpenseCategory,
   IncomeCategory,
@@ -10,7 +11,7 @@ import type {
 } from '../domain/models';
 import { DATABASE_VERSION } from './database';
 
-export const CURRENT_DATA_VERSION = 2;
+export const CURRENT_DATA_VERSION = 3;
 export const SYSTEM_UNSET_PAYMENT_METHOD_ID = 'payment-method-unset';
 
 const EXPENSE_CATEGORY_NAMES = ['食費', '日用品', '交通費', '固定費', '娯楽費'] as const;
@@ -20,10 +21,20 @@ export interface InitialData {
   expenseCategories: ExpenseCategory[];
   incomeCategories: IncomeCategory[];
   paymentMethods: PaymentMethod[];
+  budgetSettings: BudgetSettings;
   displaySettings: DisplaySettings;
   notificationSettings: NotificationSettings;
   onboardingState: OnboardingState;
   appMetadata: AppMetadata;
+}
+
+export function createBudgetSettings(now: UtcIsoDateTime): BudgetSettings {
+  return {
+    id: 'budget-settings',
+    monthlyCarryoverEnabled: false,
+    categoryCarryoverEnabled: false,
+    updatedAt: now,
+  };
 }
 
 export function createInitialData(now: UtcIsoDateTime): InitialData {
@@ -104,6 +115,7 @@ export function createInitialData(now: UtcIsoDateTime): InitialData {
     expenseCategories,
     incomeCategories,
     paymentMethods,
+    budgetSettings: createBudgetSettings(now),
     displaySettings: {
       id: 'display-settings',
       transactionListFields: ['amount', 'category', 'paymentMethod', 'merchant', 'content'],
