@@ -1,11 +1,22 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { DisplaySettings, MonthKey } from './domain/models';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type {
+  DisplaySettings,
+  MonthKey,
+  NotificationSettings,
+} from './domain/models';
 import { APP_TABS, isAppTabId, type AppTabId } from './app/tabs';
 import { defaultAppServices, type AppServices } from './app/services';
 import { AppShell } from './components/AppShell';
 import { PwaUpdateBanner } from './components/PwaUpdateBanner';
 import { HomePage } from './features/analytics/HomePage';
 import { BudgetPage } from './features/budget/BudgetPage';
+import { BudgetAlertBanner } from './features/notifications/BudgetAlertBanner';
+import {
+  browserSystemNotificationGateway,
+  type SystemNotificationGateway,
+} from './features/notifications/browserNotificationGateway';
+import type { MonthlyBudgetExceededAlert } from './features/notifications/notificationModel';
+import { NotificationSettingsCard } from './features/notifications/NotificationSettingsCard';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { RegisterPage } from './features/transactions/RegisterPage';
 import { TransactionsPage } from './features/transactions/TransactionsPage';
@@ -16,10 +27,12 @@ import {
 
 interface AppReferenceData extends TransactionMasterData {
   displaySettings: DisplaySettings;
+  notificationSettings: NotificationSettings;
 }
 
 interface AppProps {
   services?: AppServices;
+  notificationGateway?: SystemNotificationGateway;
 }
 
 function readTab(): AppTabId {
@@ -27,40 +40,91 @@ function readTab(): AppTabId {
   return isAppTabId(value) ? value : 'home';
 }
 
-export function App({ services = defaultAppServices }: AppProps): React.JSX.Element {
+export function App({
+  services = defaultAppServices,
+  notificationGateway = browserSystemNotificationGateway,
+}: AppProps): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<AppTabId>(readTab);
   const [referenceData, setReferenceData] = useState<AppReferenceData | null>(null);
   const [referenceError, setReferenceError] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<MonthKey>(currentMonthKey);
   const [revision, setRevision] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
+  const [budgetAlert, setBudgetAlert] = useState<MonthlyBudgetExceededAlert | null>(null);
+  const notificationCheckRunning = useRef(false);
 
   const loadReferenceData = useCallback(async (): Promise<void> => {
     setReferenceError('');
     try {
-      const [expenseCategories, incomeCategories, paymentMethods, displaySettings] =
-        await Promise.all([
-          services.masterData.listExpenseCategories(true),
-          services.masterData.listIncomeCategories(true),
-          services.masterData.listPaymentMethods(true),
-          services.settings.getDisplaySettings(),
-        ]);
+      const [
+        expenseCategories,
+        incomeCategories,
+        paymentMethods,
+        displaySettings,
+        storedNotificationSettings,
+      ] = await Promise.all([
+        services.masterData.listExpenseCategories(true),
+        services.masterData.listIncomeCategories(true),
+        services.masterData.listPaymentMethods(true),
+        services.settings.getDisplaySettings(),
+        services.settings.getNotificationSettings(),
+      ]);
+
+      const currentPermission = notificationGateway.getPermission();
+      const notificationSettings =
+        currentPermission === storedNotificationSettings.lastKnownPermission
+          ? storedNotificationSettings
+          : await services.settings.updateNotificationSettings({
+              lastKnownPermission: currentPermission,
+              systemNotificationEnabled:
+                currentPermission === 'granted' &&
+                storedNotificationSettings.systemNotificationEnabled,
+            });
+
       setReferenceData({
         expenseCategories,
         incomeCategories,
         paymentMethods,
         displaySettings,
+        notificationSettings,
       });
     } catch (error: unknown) {
       setReferenceError(
         error instanceof Error ? error.message : '設定データを読み込めませんでした。',
       );
     }
-  }, [services]);
+  }, [notificationGateway, services]);
+
+  const checkBudgetNotifications = useCallback(async (): Promise<void> => {
+    if (notificationCheckRunning.current) return;
+    notificationCheckRunning.current = true;
+    try {
+      const claim = await services.notifications.claimMonthlyBudgetExceeded(
+        currentMonthKey(),
+      );
+      if (claim === null) return;
+
+      if (claim.showInApp) setBudgetAlert(claim.alert);
+      if (claim.showSystem) {
+        const wasShown = await notificationGateway.showBudgetExceeded(claim.alert);
+        if (!wasShown) {
+          await services.notifications.releaseSystemNotification(claim.alert.monthKey);
+        }
+      }
+    } catch {
+      // 通知失敗で家計簿本体を利用不能にしないため、次回の変更時に再試行します。
+    } finally {
+      notificationCheckRunning.current = false;
+    }
+  }, [notificationGateway, services]);
 
   useEffect(() => {
     void loadReferenceData();
   }, [loadReferenceData]);
+
+  useEffect(() => {
+    if (referenceData !== null) void checkBudgetNotifications();
+  }, [checkBudgetNotifications, referenceData, revision]);
 
   useEffect(() => {
     const listener = (): void => setActiveTab(readTab());
@@ -77,6 +141,11 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
   const handleDataChanged = (): void => {
     setRevision((current) => current + 1);
     void loadReferenceData();
+  };
+
+  const handleSettingsChanged = async (): Promise<void> => {
+    await loadReferenceData();
+    setRevision((current) => current + 1);
   };
 
   const page = (): React.JSX.Element => {
@@ -159,13 +228,21 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
     }
 
     return (
-      <SettingsPage
-        masterData={referenceData}
-        displaySettings={referenceData.displaySettings}
-        masterDataRepository={services.masterData}
-        settingsRepository={services.settings}
-        onChanged={loadReferenceData}
-      />
+      <div className="page-stack">
+        <NotificationSettingsCard
+          settings={referenceData.notificationSettings}
+          settingsRepository={services.settings}
+          gateway={notificationGateway}
+          onChanged={handleSettingsChanged}
+        />
+        <SettingsPage
+          masterData={referenceData}
+          displaySettings={referenceData.displaySettings}
+          masterDataRepository={services.masterData}
+          settingsRepository={services.settings}
+          onChanged={loadReferenceData}
+        />
+      </div>
     );
   };
 
@@ -176,6 +253,17 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
       <a className="skip-link" href="#main-content">本文へ移動</a>
       <PwaUpdateBanner />
       <AppShell title={title} activeTab={activeTab} onSelectTab={navigate}>
+        {budgetAlert !== null && (
+          <BudgetAlertBanner
+            alert={budgetAlert}
+            onDismiss={() => setBudgetAlert(null)}
+            onOpenBudget={() => {
+              setSelectedMonth(budgetAlert.monthKey);
+              setBudgetAlert(null);
+              navigate('budget');
+            }}
+          />
+        )}
         {statusMessage !== '' && (
           <div className="status-message success" role="status">{statusMessage}</div>
         )}
