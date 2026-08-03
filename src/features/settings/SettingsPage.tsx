@@ -136,15 +136,71 @@ export function SettingsPage({
 
       <section className="settings-card">
         <h2>支出カテゴリ</h2>
+        <p className="settings-description">
+          矢印で変更した順番が、登録画面のカテゴリ選択にも反映されます。
+        </p>
         <form className="inline-form" onSubmit={(event) => void addExpenseCategory(event)}>
-          <label><span className="sr-only">新しい支出カテゴリ</span><input value={expenseName} onChange={(event) => setExpenseName(event.currentTarget.value)} placeholder="カテゴリ名" maxLength={40} /></label>
+          <label>
+            <span className="sr-only">新しい支出カテゴリ</span>
+            <input
+              value={expenseName}
+              onChange={(event) => setExpenseName(event.currentTarget.value)}
+              placeholder="カテゴリ名"
+              maxLength={40}
+            />
+          </label>
           <button className="primary-button" type="submit">追加</button>
         </form>
-        <ul className="master-list">
-          {masterData.expenseCategories.map((category) => (
+        <ul className="master-list category-sortable-list">
+          {masterData.expenseCategories.map((category, index) => (
             <li key={category.id}>
-              <div><strong>{category.name}</strong><small>{category.usageCount}件で使用{category.isActive ? '' : '・非表示'}</small></div>
-              <button type="button" className="text-button" onClick={() => void run(() => masterDataRepository.setExpenseCategoryActive(category.id, !category.isActive), category.isActive ? 'カテゴリを非表示にしました。' : 'カテゴリを再表示しました。')}>{category.isActive ? '非表示' : '再表示'}</button>
+              <div className="category-list-copy">
+                <strong>{category.name}</strong>
+                <small>{category.usageCount}件で使用{category.isActive ? '' : '・非表示'}</small>
+              </div>
+              <div className="category-list-actions">
+                <button
+                  type="button"
+                  className="category-order-button"
+                  aria-label={`${category.name}を上へ`}
+                  title="上へ"
+                  disabled={index === 0}
+                  onClick={() => void run(
+                    () => masterDataRepository.moveExpenseCategory(category.id, 'up'),
+                    '支出カテゴリの順番を変更しました。',
+                  )}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="category-order-button"
+                  aria-label={`${category.name}を下へ`}
+                  title="下へ"
+                  disabled={index === masterData.expenseCategories.length - 1}
+                  onClick={() => void run(
+                    () => masterDataRepository.moveExpenseCategory(category.id, 'down'),
+                    '支出カテゴリの順番を変更しました。',
+                  )}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  className="text-button category-visibility-button"
+                  onClick={() => void run(
+                    () => masterDataRepository.setExpenseCategoryActive(
+                      category.id,
+                      !category.isActive,
+                    ),
+                    category.isActive
+                      ? 'カテゴリを非表示にしました。'
+                      : 'カテゴリを再表示しました。',
+                  )}
+                >
+                  {category.isActive ? '非表示' : '再表示'}
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -152,15 +208,71 @@ export function SettingsPage({
 
       <section className="settings-card">
         <h2>収入カテゴリ</h2>
+        <p className="settings-description">
+          矢印で変更した順番が、登録画面のカテゴリ選択にも反映されます。
+        </p>
         <form className="inline-form" onSubmit={(event) => void addIncomeCategory(event)}>
-          <label><span className="sr-only">新しい収入カテゴリ</span><input value={incomeName} onChange={(event) => setIncomeName(event.currentTarget.value)} placeholder="カテゴリ名" maxLength={40} /></label>
+          <label>
+            <span className="sr-only">新しい収入カテゴリ</span>
+            <input
+              value={incomeName}
+              onChange={(event) => setIncomeName(event.currentTarget.value)}
+              placeholder="カテゴリ名"
+              maxLength={40}
+            />
+          </label>
           <button className="primary-button" type="submit">追加</button>
         </form>
-        <ul className="master-list">
-          {masterData.incomeCategories.map((category) => (
+        <ul className="master-list category-sortable-list">
+          {masterData.incomeCategories.map((category, index) => (
             <li key={category.id}>
-              <div><strong>{category.name}</strong><small>{category.usageCount}件で使用{category.isActive ? '' : '・非表示'}</small></div>
-              <button type="button" className="text-button" onClick={() => void run(() => masterDataRepository.setIncomeCategoryActive(category.id, !category.isActive), category.isActive ? 'カテゴリを非表示にしました。' : 'カテゴリを再表示しました。')}>{category.isActive ? '非表示' : '再表示'}</button>
+              <div className="category-list-copy">
+                <strong>{category.name}</strong>
+                <small>{category.usageCount}件で使用{category.isActive ? '' : '・非表示'}</small>
+              </div>
+              <div className="category-list-actions">
+                <button
+                  type="button"
+                  className="category-order-button"
+                  aria-label={`${category.name}を上へ`}
+                  title="上へ"
+                  disabled={index === 0}
+                  onClick={() => void run(
+                    () => masterDataRepository.moveIncomeCategory(category.id, 'up'),
+                    '収入カテゴリの順番を変更しました。',
+                  )}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="category-order-button"
+                  aria-label={`${category.name}を下へ`}
+                  title="下へ"
+                  disabled={index === masterData.incomeCategories.length - 1}
+                  onClick={() => void run(
+                    () => masterDataRepository.moveIncomeCategory(category.id, 'down'),
+                    '収入カテゴリの順番を変更しました。',
+                  )}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  className="text-button category-visibility-button"
+                  onClick={() => void run(
+                    () => masterDataRepository.setIncomeCategoryActive(
+                      category.id,
+                      !category.isActive,
+                    ),
+                    category.isActive
+                      ? 'カテゴリを非表示にしました。'
+                      : 'カテゴリを再表示しました。',
+                  )}
+                >
+                  {category.isActive ? '非表示' : '再表示'}
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -169,15 +281,50 @@ export function SettingsPage({
       <section className="settings-card">
         <h2>支払い方法</h2>
         <form className="payment-form" onSubmit={(event) => void addPaymentMethod(event)}>
-          <label><span>名前</span><input value={paymentName} onChange={(event) => setPaymentName(event.currentTarget.value)} placeholder="例：PayPay" maxLength={40} /></label>
-          <label><span>種類</span><select value={paymentKind} onChange={(event) => setPaymentKind(event.currentTarget.value as Exclude<PaymentMethodKind, 'system-unset'>)}>{Object.entries(PAYMENT_KIND_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <label>
+            <span>名前</span>
+            <input
+              value={paymentName}
+              onChange={(event) => setPaymentName(event.currentTarget.value)}
+              placeholder="例：PayPay"
+              maxLength={40}
+            />
+          </label>
+          <label>
+            <span>種類</span>
+            <select
+              value={paymentKind}
+              onChange={(event) => setPaymentKind(
+                event.currentTarget.value as Exclude<PaymentMethodKind, 'system-unset'>,
+              )}
+            >
+              {Object.entries(PAYMENT_KIND_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
           <button className="primary-button" type="submit">追加</button>
         </form>
         <ul className="master-list">
           {masterData.paymentMethods.map((paymentMethod) => (
             <li key={paymentMethod.id}>
-              <div><strong>{paymentMethod.name}</strong><small>{paymentMethod.isSystem ? 'システム管理' : `${paymentMethod.usageCount}件で使用`}</small></div>
-              {!paymentMethod.isSystem && <button type="button" className="danger-text-button" onClick={() => setPaymentToDelete(paymentMethod)}>削除</button>}
+              <div>
+                <strong>{paymentMethod.name}</strong>
+                <small>
+                  {paymentMethod.isSystem
+                    ? 'システム管理'
+                    : `${paymentMethod.usageCount}件で使用`}
+                </small>
+              </div>
+              {!paymentMethod.isSystem && (
+                <button
+                  type="button"
+                  className="danger-text-button"
+                  onClick={() => setPaymentToDelete(paymentMethod)}
+                >
+                  削除
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -195,15 +342,55 @@ export function SettingsPage({
       <section className="notice-card">
         <h2>旧版データ</h2>
         <p>以前のLocalStorage記録は自動変換せず、確認・書き出し用の旧版画面を残しています。</p>
-        <a className="legacy-link" href={`${import.meta.env.BASE_URL}legacy/index.html`}>旧版の家計簿を開く</a>
+        <a className="legacy-link" href={`${import.meta.env.BASE_URL}legacy/index.html`}>
+          旧版の家計簿を開く
+        </a>
       </section>
 
       {paymentToDelete !== null && (
         <div className="dialog-backdrop" role="presentation">
-          <section className="sheet-dialog" role="dialog" aria-modal="true" aria-label="支払い方法を削除">
-            <header className="sheet-header"><h2>支払い方法を削除</h2><button type="button" className="icon-button" aria-label="閉じる" onClick={() => setPaymentToDelete(null)}>×</button></header>
-            <div className="confirm-message"><p><strong>{paymentToDelete.name}</strong>を削除します。</p>{paymentToDelete.usageCount > 0 && <p>過去の{paymentToDelete.usageCount}件は「未設定」に変更されます。</p>}</div>
-            <div className="form-actions"><button type="button" className="secondary-button" onClick={() => setPaymentToDelete(null)}>キャンセル</button><button type="button" className="danger-button" onClick={() => void run(async () => { await masterDataRepository.deletePaymentMethod(paymentToDelete.id); setPaymentToDelete(null); }, '支払い方法を削除しました。')}>削除する</button></div>
+          <section
+            className="sheet-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="支払い方法を削除"
+          >
+            <header className="sheet-header">
+              <h2>支払い方法を削除</h2>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="閉じる"
+                onClick={() => setPaymentToDelete(null)}
+              >
+                ×
+              </button>
+            </header>
+            <div className="confirm-message">
+              <p><strong>{paymentToDelete.name}</strong>を削除します。</p>
+              {paymentToDelete.usageCount > 0 && (
+                <p>過去の{paymentToDelete.usageCount}件は「未設定」に変更されます。</p>
+              )}
+            </div>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setPaymentToDelete(null)}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                className="danger-button"
+                onClick={() => void run(async () => {
+                  await masterDataRepository.deletePaymentMethod(paymentToDelete.id);
+                  setPaymentToDelete(null);
+                }, '支払い方法を削除しました。')}
+              >
+                削除する
+              </button>
+            </div>
           </section>
         </div>
       )}

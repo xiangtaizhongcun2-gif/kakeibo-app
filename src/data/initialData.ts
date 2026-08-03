@@ -55,6 +55,7 @@ export function createInitialData(now: UtcIsoDateTime): InitialData {
     usageCount: 0,
     isActive: true,
     isSystem: false,
+    sortOrder: index,
     createdAt: now,
     updatedAt: now,
   }));
@@ -65,6 +66,7 @@ export function createInitialData(now: UtcIsoDateTime): InitialData {
     usageCount: 0,
     isActive: true,
     isSystem: false,
+    sortOrder: index,
     createdAt: now,
     updatedAt: now,
   }));
