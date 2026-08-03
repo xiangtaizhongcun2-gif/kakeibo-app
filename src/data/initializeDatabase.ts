@@ -16,6 +16,7 @@ export async function initializeDatabase(
       database.expenseCategories,
       database.incomeCategories,
       database.paymentMethods,
+      database.budgetSettings,
       database.displaySettings,
       database.notificationSettings,
       database.onboardingStates,
@@ -29,6 +30,7 @@ export async function initializeDatabase(
         await database.expenseCategories.bulkAdd(initialData.expenseCategories);
         await database.incomeCategories.bulkAdd(initialData.incomeCategories);
         await database.paymentMethods.bulkAdd(initialData.paymentMethods);
+        await database.budgetSettings.add(initialData.budgetSettings);
         await database.displaySettings.add(initialData.displaySettings);
         await database.notificationSettings.add(initialData.notificationSettings);
         await database.onboardingStates.add(initialData.onboardingState);
