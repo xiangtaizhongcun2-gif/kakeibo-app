@@ -9,6 +9,11 @@ import { defaultAppServices, type AppServices } from './app/services';
 import { AppShell } from './components/AppShell';
 import { PwaUpdateBanner } from './components/PwaUpdateBanner';
 import { HomePage } from './features/analytics/HomePage';
+import {
+  browserBackupFileGateway,
+  type BackupFileGateway,
+} from './features/backup/browserBackupGateway';
+import { BackupRestorePanel } from './features/backup/BackupRestorePanel';
 import { BudgetPage } from './features/budget/BudgetPage';
 import {
   browserExportGateway,
@@ -39,6 +44,7 @@ interface AppProps {
   services?: AppServices;
   notificationGateway?: SystemNotificationGateway;
   exportGateway?: ExportGateway;
+  backupGateway?: BackupFileGateway;
 }
 
 function readTab(): AppTabId {
@@ -50,6 +56,7 @@ export function App({
   services = defaultAppServices,
   notificationGateway = browserSystemNotificationGateway,
   exportGateway = browserExportGateway,
+  backupGateway = browserBackupFileGateway,
 }: AppProps): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<AppTabId>(readTab);
   const [referenceData, setReferenceData] = useState<AppReferenceData | null>(null);
@@ -155,6 +162,13 @@ export function App({
     setRevision((current) => current + 1);
   };
 
+  const handleRestored = async (): Promise<void> => {
+    setBudgetAlert(null);
+    setSelectedMonth(currentMonthKey());
+    await loadReferenceData();
+    setRevision((current) => current + 1);
+  };
+
   const page = (): React.JSX.Element => {
     if (referenceError !== '') {
       return (
@@ -250,6 +264,11 @@ export function App({
           initialMonthKey={selectedMonth}
           revision={revision}
           gateway={exportGateway}
+        />
+        <BackupRestorePanel
+          repository={services.backups}
+          gateway={backupGateway}
+          onRestored={handleRestored}
         />
         <SettingsPage
           masterData={referenceData}
