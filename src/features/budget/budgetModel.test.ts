@@ -1,14 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type {
-  CategoryBudget,
-  ExpenseCategory,
-  MonthlyBudget,
-  Transaction,
-} from '../../domain/models';
+import type { MonthlyBudget, Transaction } from '../../domain/models';
 import {
-  buildBudgetOverview,
   createBudgetProgress,
   parseBudgetAmount,
+  totalExpenseYen,
 } from './budgetModel';
 
 const timestamp = '2026-08-01T00:00:00.000Z';
@@ -21,50 +16,6 @@ const monthlyBudget: MonthlyBudget = {
   createdAt: timestamp,
   updatedAt: timestamp,
 };
-
-const categoryBudgets: CategoryBudget[] = [
-  {
-    id: '2026-08:food',
-    monthKey: '2026-08',
-    expenseCategoryId: 'food',
-    baseAmountYen: 5000,
-    carryoverAmountYen: 1000,
-    effectiveAmountYen: 6000,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  },
-  {
-    id: '2026-08:transport',
-    monthKey: '2026-08',
-    expenseCategoryId: 'transport',
-    baseAmountYen: 1000,
-    carryoverAmountYen: 0,
-    effectiveAmountYen: 1000,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  },
-];
-
-const categories: ExpenseCategory[] = [
-  {
-    id: 'food',
-    name: '食費',
-    usageCount: 1,
-    isActive: true,
-    isSystem: false,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  },
-  {
-    id: 'transport',
-    name: '交通費',
-    usageCount: 1,
-    isActive: true,
-    isSystem: false,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  },
-];
 
 const transactions: Transaction[] = [
   {
@@ -124,27 +75,8 @@ describe('budgetModel', () => {
     });
   });
 
-  it('月全体とカテゴリ別の予算状況を支出だけから集計する', () => {
-    const overview = buildBudgetOverview(
-      monthlyBudget,
-      categoryBudgets,
-      transactions,
-      categories,
-    );
-
-    expect(overview.monthly).toMatchObject({
-      spentAmountYen: 6000,
-      remainingAmountYen: 6000,
-      usagePercent: 50,
-    });
-    expect(overview.categories[0]).toMatchObject({
-      categoryName: '交通費',
-      spentAmountYen: 1500,
-      remainingAmountYen: -500,
-      usagePercent: 150,
-      isExceeded: true,
-    });
-    expect(overview.exceededCategoryCount).toBe(1);
+  it('収入を除外して月の支出額だけを合計する', () => {
+    expect(totalExpenseYen(transactions)).toBe(6000);
   });
 
   it('予算額は1円以上の整数だけを受け付ける', () => {
