@@ -86,7 +86,6 @@ export interface CategoryBudget extends EntityTimestamps {
 export interface BudgetSettings {
   id: 'budget-settings';
   monthlyCarryoverEnabled: boolean;
-  categoryCarryoverEnabled: boolean;
   updatedAt: UtcIsoDateTime;
 }
 
