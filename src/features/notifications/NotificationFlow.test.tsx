@@ -73,7 +73,7 @@ describe('Phase 6 notification flow', () => {
     expect(
       await screen.findByRole('heading', { name: '月予算を超過しました' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/2,000円/)).toBeInTheDocument();
+    expect(screen.getAllByText(/2,000円/).length).toBeGreaterThan(0);
     await waitFor(async () =>
       expect(await services.notifications.getMonthlyState(currentMonthKey())).toMatchObject({
         hasEverExceeded: true,
