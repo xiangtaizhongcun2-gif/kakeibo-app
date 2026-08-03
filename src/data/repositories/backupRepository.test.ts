@@ -3,6 +3,7 @@ import { MyKakeiboDatabase } from '../database';
 import { initializeDatabase } from '../initializeDatabase';
 import { BackupRepository } from './backupRepository';
 import { BudgetRepository } from './budgetRepository';
+import { SavingsRepository } from './savingsRepository';
 import { SettingsRepository } from './settingsRepository';
 import { TransactionRepository } from './transactionRepository';
 
@@ -24,11 +25,12 @@ afterEach(async () => {
 });
 
 describe('BackupRepository', () => {
-  it('全テーブルをバックアップし、現在データを完全に置き換えて復元する', async () => {
+  it('貯金設定を含む全テーブルを完全に置き換えて復元する', async () => {
     const database = createDatabase();
     await initializeDatabase(database);
     const transactions = new TransactionRepository(database);
     const budgets = new BudgetRepository(database);
+    const savings = new SavingsRepository(database);
     const settings = new SettingsRepository(database);
     const backups = new BackupRepository(database);
 
@@ -42,6 +44,11 @@ describe('BackupRepository', () => {
       content: 'バックアップ対象',
     });
     await budgets.setMonthlyBudget('2026-08', 10000);
+    await savings.updateSettings({
+      balanceYen: 50000,
+      goalName: '旅行資金',
+      goalAmountYen: 100000,
+    });
     await settings.updateDisplaySettings({
       transactionListFields: ['amount', 'category'],
       themeMode: 'dark',
@@ -57,6 +64,11 @@ describe('BackupRepository', () => {
       content: '復元前だけのデータ',
     });
     await budgets.deleteMonthlyBudget('2026-08');
+    await savings.updateSettings({
+      balanceYen: 999999,
+      goalName: '',
+      goalAmountYen: null,
+    });
     await settings.updateDisplaySettings({
       transactionListFields: ['amount'],
       themeMode: 'light',
@@ -82,6 +94,9 @@ describe('BackupRepository', () => {
     );
     expect(await database.budgetSettings.toArray()).toEqual(
       document.data.budgetSettings,
+    );
+    expect(await database.savingsSettings.toArray()).toEqual(
+      document.data.savingsSettings,
     );
     expect(await database.notificationStates.toArray()).toEqual(
       document.data.notificationStates,
@@ -121,6 +136,7 @@ describe('BackupRepository', () => {
     const database = createDatabase();
     await initializeDatabase(database);
     const transactions = new TransactionRepository(database);
+    const savings = new SavingsRepository(database);
     const backups = new BackupRepository(database);
 
     const backedUp = await transactions.create({
@@ -132,6 +148,11 @@ describe('BackupRepository', () => {
       merchant: '売店',
       content: 'バックアップ側',
     });
+    await savings.updateSettings({
+      balanceYen: 10000,
+      goalName: '予備費',
+      goalAmountYen: 50000,
+    });
     const document = await backups.createBackup('2026-08-03T03:30:00.000Z');
     await transactions.delete(backedUp.id);
     const current = await transactions.create({
@@ -140,6 +161,11 @@ describe('BackupRepository', () => {
       date: '2026-08-02',
       incomeCategoryId: 'income-category-1',
       content: '現在側',
+    });
+    await savings.updateSettings({
+      balanceYen: 30000,
+      goalName: '',
+      goalAmountYen: null,
     });
 
     const failCreatingMetadata = (): never => {
@@ -154,6 +180,10 @@ describe('BackupRepository', () => {
     expect(await database.transactions.count()).toBe(1);
     expect(await database.transactions.get(current.id)).toBeDefined();
     expect(await database.transactions.get(backedUp.id)).toBeUndefined();
+    expect(await savings.getSettings()).toMatchObject({
+      balanceYen: 30000,
+      goalAmountYen: null,
+    });
     expect(await database.appMetadata.get('metadata')).toBeDefined();
   });
 });
