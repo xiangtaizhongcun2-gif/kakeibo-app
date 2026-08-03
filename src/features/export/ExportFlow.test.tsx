@@ -75,7 +75,9 @@ describe('Phase 7 export flow', () => {
     await user.click(screen.getByRole('button', { name: '収支' }));
     await screen.findByText('スーパー');
     await user.type(screen.getByPlaceholderText('店名・内容を検索'), 'スーパー');
-    await user.click(screen.getByRole('button', { name: '表示中をCSV出力' }));
+    const filteredButton = screen.getByRole('button', { name: '表示中をCSV出力' });
+    await waitFor(() => expect(filteredButton).toBeEnabled());
+    await user.click(filteredButton);
 
     await waitFor(() => expect(gateway.csvExports).toHaveLength(1));
     const exported = gateway.csvExports[0];
@@ -113,14 +115,18 @@ describe('Phase 7 export flow', () => {
       await screen.findByRole('heading', { name: 'CSV・PDF出力' }),
     ).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: '月のCSVを共有・保存' }),
-    );
+    const monthlyCsvButton = screen.getByRole('button', {
+      name: '月のCSVを共有・保存',
+    });
+    await waitFor(() => expect(monthlyCsvButton).toBeEnabled());
+    await user.click(monthlyCsvButton);
     await waitFor(() => expect(gateway.csvExports).toHaveLength(1));
     expect(gateway.csvExports[0]?.content).toContain('給与');
     expect(gateway.csvExports[0]?.content).toContain('スーパー');
 
-    await user.click(screen.getByRole('button', { name: 'PDFとして保存' }));
+    const pdfButton = screen.getByRole('button', { name: 'PDFとして保存' });
+    await waitFor(() => expect(pdfButton).toBeEnabled());
+    await user.click(pdfButton);
     expect(gateway.reports).toHaveLength(1);
     expect(gateway.reports[0]).toMatchObject({
       monthKey,
