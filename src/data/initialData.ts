@@ -7,11 +7,12 @@ import type {
   NotificationSettings,
   OnboardingState,
   PaymentMethod,
+  SavingsSettings,
   UtcIsoDateTime,
 } from '../domain/models';
 import { DATABASE_VERSION } from './database';
 
-export const CURRENT_DATA_VERSION = 3;
+export const CURRENT_DATA_VERSION = 4;
 export const SYSTEM_UNSET_PAYMENT_METHOD_ID = 'payment-method-unset';
 
 const EXPENSE_CATEGORY_NAMES = ['食費', '日用品', '交通費', '固定費', '娯楽費'] as const;
@@ -22,6 +23,7 @@ export interface InitialData {
   incomeCategories: IncomeCategory[];
   paymentMethods: PaymentMethod[];
   budgetSettings: BudgetSettings;
+  savingsSettings: SavingsSettings;
   displaySettings: DisplaySettings;
   notificationSettings: NotificationSettings;
   onboardingState: OnboardingState;
@@ -32,6 +34,16 @@ export function createBudgetSettings(now: UtcIsoDateTime): BudgetSettings {
   return {
     id: 'budget-settings',
     monthlyCarryoverEnabled: false,
+    updatedAt: now,
+  };
+}
+
+export function createSavingsSettings(now: UtcIsoDateTime): SavingsSettings {
+  return {
+    id: 'savings-settings',
+    balanceYen: 0,
+    goalName: '',
+    goalAmountYen: null,
     updatedAt: now,
   };
 }
@@ -115,6 +127,7 @@ export function createInitialData(now: UtcIsoDateTime): InitialData {
     incomeCategories,
     paymentMethods,
     budgetSettings: createBudgetSettings(now),
+    savingsSettings: createSavingsSettings(now),
     displaySettings: {
       id: 'display-settings',
       transactionListFields: ['amount', 'category', 'paymentMethod', 'merchant', 'content'],

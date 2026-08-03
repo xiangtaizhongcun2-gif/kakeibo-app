@@ -4,7 +4,11 @@ import type {
   UtcIsoDateTime,
 } from '../domain/models';
 import type { MyKakeiboDatabase } from './database';
-import { createBudgetSettings, CURRENT_DATA_VERSION } from './initialData';
+import {
+  createBudgetSettings,
+  createSavingsSettings,
+  CURRENT_DATA_VERSION,
+} from './initialData';
 
 const VALID_LIST_FIELDS: readonly TransactionListField[] = [
   'amount',
@@ -61,6 +65,14 @@ export async function runDataMigrations(
           await database.budgetSettings.put(createBudgetSettings(now));
         }
         dataVersion = 3;
+        break;
+      }
+      case 3: {
+        const savingsSettings = await database.savingsSettings.get('savings-settings');
+        if (savingsSettings === undefined) {
+          await database.savingsSettings.put(createSavingsSettings(now));
+        }
+        dataVersion = 4;
         break;
       }
       default:

@@ -12,7 +12,7 @@ import {
 import { createInitialData } from '../../data/initialData';
 
 const timestamp = '2026-08-03T03:30:00.000Z';
-const compatibility = { databaseVersion: 2, dataVersion: 3 } as const;
+const compatibility = { databaseVersion: 3, dataVersion: 4 } as const;
 
 function validDocument() {
   const initial = createInitialData(timestamp);
@@ -52,6 +52,14 @@ function validDocument() {
     ],
     categoryBudgets: [],
     budgetSettings: [initial.budgetSettings],
+    savingsSettings: [
+      {
+        ...initial.savingsSettings,
+        balanceYen: 50000,
+        goalName: '旅行資金',
+        goalAmountYen: 100000,
+      },
+    ],
     notificationStates: [],
     displaySettings: [initial.displaySettings],
     notificationSettings: [initial.notificationSettings],
@@ -62,12 +70,19 @@ function validDocument() {
 }
 
 describe('backupModel', () => {
-  it('全テーブルを含む形式バージョン付きJSONを作成して検証する', () => {
+  it('貯金設定を含む全テーブルのJSONを作成して検証する', () => {
     const document = validDocument();
     const parsed = parseBackupJson(stringifyBackup(document), compatibility);
 
     expect(parsed.format).toBe(BACKUP_FORMAT);
     expect(parsed.data.transactions).toHaveLength(1);
+    expect(parsed.data.savingsSettings).toEqual([
+      expect.objectContaining({
+        balanceYen: 50000,
+        goalName: '旅行資金',
+        goalAmountYen: 100000,
+      }),
+    ]);
     expect(backupSummary(parsed)).toMatchObject({
       transactionCount: 1,
       expenseCategoryCount: 5,
@@ -77,6 +92,37 @@ describe('backupModel', () => {
     expect(createBackupFilename(timestamp)).toBe(
       'my-kakeibo-backup-20260803-033000Z.json',
     );
+  });
+
+  it('Phase 8のバックアップへ初期貯金設定を補い現在形式へ移行する', () => {
+    const previous = structuredClone(validDocument());
+    previous.databaseVersion = 2;
+    previous.dataVersion = 3;
+    previous.data.appMetadata[0] = {
+      ...previous.data.appMetadata[0]!,
+      databaseVersion: 2,
+      dataVersion: 3,
+    };
+    const previousData = previous.data as unknown as Record<string, unknown>;
+    delete previousData.savingsSettings;
+
+    const parsed = parseBackupJson(JSON.stringify(previous), compatibility);
+
+    expect(parsed.databaseVersion).toBe(3);
+    expect(parsed.dataVersion).toBe(4);
+    expect(parsed.data.savingsSettings).toEqual([
+      {
+        id: 'savings-settings',
+        balanceYen: 0,
+        goalName: '',
+        goalAmountYen: null,
+        updatedAt: timestamp,
+      },
+    ]);
+    expect(parsed.data.appMetadata[0]).toMatchObject({
+      databaseVersion: 3,
+      dataVersion: 4,
+    });
   });
 
   it('壊れたJSONと他アプリのJSONを拒否する', () => {
@@ -123,6 +169,14 @@ describe('backupModel', () => {
     invalidDate.data.transactions[0]!.date = '2026-02-30';
     expect(() => parseBackupJson(JSON.stringify(invalidDate), compatibility)).toThrow(
       '有効なYYYY-MM-DD',
+    );
+  });
+
+  it('不正な貯金設定を拒否する', () => {
+    const invalidSavings = structuredClone(validDocument());
+    invalidSavings.data.savingsSettings[0]!.goalName = '';
+    expect(() => parseBackupJson(JSON.stringify(invalidSavings), compatibility)).toThrow(
+      '目標金額だけが設定されています',
     );
   });
 

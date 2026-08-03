@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { MonthKey, Transaction } from '../../domain/models';
+import type { MonthKey, SavingsSettings, Transaction } from '../../domain/models';
 import type {
   BudgetMonthData,
   BudgetRepository,
 } from '../../data/repositories/budgetRepository';
 import type { TransactionRepository } from '../../data/repositories/transactionRepository';
 import { HomeBudgetPanel } from '../budget/HomeBudgetPanel';
+import { HomeSavingsPanel } from '../savings/HomeSavingsPanel';
 import {
   formatMonthKey,
   shiftMonthKey,
@@ -22,21 +23,25 @@ import { aggregateTransactions, compareMonthlyTotals } from './analyticsModel';
 interface HomePageProps {
   repository: TransactionRepository;
   budgetRepository: BudgetRepository;
+  savingsSettings: SavingsSettings;
   masterData: TransactionMasterData;
   monthKey: MonthKey;
   revision: number;
   onMonthChange: (monthKey: MonthKey) => void;
   onOpenBudget: () => void;
+  onOpenSavings: () => void;
 }
 
 export function HomePage({
   repository,
   budgetRepository,
+  savingsSettings,
   masterData,
   monthKey,
   revision,
   onMonthChange,
   onOpenBudget,
+  onOpenSavings,
 }: HomePageProps): React.JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [previousTransactions, setPreviousTransactions] = useState<Transaction[]>([]);
@@ -129,6 +134,7 @@ export function HomePage({
       </section>
 
       <SummaryCards totals={analytics.totals} />
+      <HomeSavingsPanel settings={savingsSettings} onOpenSettings={onOpenSavings} />
       <HomeBudgetPanel
         monthKey={monthKey}
         budget={budgetData?.monthlyBudget ?? null}

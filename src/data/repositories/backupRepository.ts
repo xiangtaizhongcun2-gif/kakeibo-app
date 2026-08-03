@@ -48,6 +48,7 @@ export class BackupRepository {
         this.database.monthlyBudgets,
         this.database.categoryBudgets,
         this.database.budgetSettings,
+        this.database.savingsSettings,
         this.database.notificationStates,
         this.database.displaySettings,
         this.database.notificationSettings,
@@ -62,6 +63,7 @@ export class BackupRepository {
         await replaceTable(this.database.monthlyBudgets, data.monthlyBudgets);
         await replaceTable(this.database.categoryBudgets, data.categoryBudgets);
         await replaceTable(this.database.budgetSettings, data.budgetSettings);
+        await replaceTable(this.database.savingsSettings, data.savingsSettings);
         await replaceTable(this.database.notificationStates, data.notificationStates);
         await replaceTable(this.database.displaySettings, data.displaySettings);
         await replaceTable(this.database.notificationSettings, data.notificationSettings);
@@ -82,6 +84,7 @@ export class BackupRepository {
         this.database.monthlyBudgets,
         this.database.categoryBudgets,
         this.database.budgetSettings,
+        this.database.savingsSettings,
         this.database.notificationStates,
         this.database.displaySettings,
         this.database.notificationSettings,
@@ -97,6 +100,7 @@ export class BackupRepository {
           monthlyBudgets,
           categoryBudgets,
           budgetSettings,
+          savingsSettings,
           notificationStates,
           displaySettings,
           notificationSettings,
@@ -110,6 +114,7 @@ export class BackupRepository {
           this.database.monthlyBudgets.toArray(),
           this.database.categoryBudgets.toArray(),
           this.database.budgetSettings.toArray(),
+          this.database.savingsSettings.toArray(),
           this.database.notificationStates.toArray(),
           this.database.displaySettings.toArray(),
           this.database.notificationSettings.toArray(),
@@ -125,6 +130,7 @@ export class BackupRepository {
           monthlyBudgets,
           categoryBudgets,
           budgetSettings,
+          savingsSettings,
           notificationStates,
           displaySettings,
           notificationSettings,

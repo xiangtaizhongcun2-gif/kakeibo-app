@@ -11,11 +11,12 @@ import type {
   NotificationState,
   OnboardingState,
   PaymentMethod,
+  SavingsSettings,
   Transaction,
 } from '../domain/models';
 
 export const DATABASE_NAME = 'my-kakeibo';
-export const DATABASE_VERSION = 2;
+export const DATABASE_VERSION = 3;
 
 const VERSION_1_STORES = {
   transactions:
@@ -33,6 +34,11 @@ const VERSION_1_STORES = {
   appMetadata: '&id,dataVersion',
 } as const;
 
+const VERSION_2_STORES = {
+  ...VERSION_1_STORES,
+  budgetSettings: '&id',
+} as const;
+
 export class MyKakeiboDatabase extends Dexie {
   transactions!: Table<Transaction, string>;
   expenseCategories!: Table<ExpenseCategory, string>;
@@ -41,6 +47,7 @@ export class MyKakeiboDatabase extends Dexie {
   monthlyBudgets!: Table<MonthlyBudget, string>;
   categoryBudgets!: Table<CategoryBudget, string>;
   budgetSettings!: Table<BudgetSettings, string>;
+  savingsSettings!: Table<SavingsSettings, string>;
   notificationStates!: Table<NotificationState, string>;
   displaySettings!: Table<DisplaySettings, string>;
   notificationSettings!: Table<NotificationSettings, string>;
@@ -51,9 +58,10 @@ export class MyKakeiboDatabase extends Dexie {
     super(name);
 
     this.version(1).stores(VERSION_1_STORES);
+    this.version(2).stores(VERSION_2_STORES);
     this.version(DATABASE_VERSION).stores({
-      ...VERSION_1_STORES,
-      budgetSettings: '&id',
+      ...VERSION_2_STORES,
+      savingsSettings: '&id',
     });
   }
 }
