@@ -169,8 +169,11 @@ describe('exportModel', () => {
       budget,
       new Date('2026-08-31T03:00:00.000Z'),
     );
+    const secondRow = report.transactions[1];
+    expect(secondRow).toBeDefined();
+    if (secondRow === undefined) return;
     report.transactions[1] = {
-      ...report.transactions[1],
+      ...secondRow,
       content: '<script>alert(1)</script>',
     };
 
