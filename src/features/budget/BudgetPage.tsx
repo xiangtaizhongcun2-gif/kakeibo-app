@@ -1,404 +1,214 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import type { ExpenseCategory, MonthKey, Transaction } from '../../domain/models';
-import type {
-  BudgetMonthData,
-  BudgetRepository,
-} from '../../data/repositories/budgetRepository';
+import type { BudgetSettings, MonthKey, MonthlyBudget, Transaction } from '../../domain/models';
+import type { BudgetRepository } from '../../data/repositories/budgetRepository';
 import type { TransactionRepository } from '../../data/repositories/transactionRepository';
-import {
-  formatMonthKey,
-  formatYen,
-  shiftMonthKey,
-} from '../transactions/transactionModel';
+import { formatMonthKey, shiftMonthKey } from '../transactions/transactionModel';
 import { BudgetProgressCard } from './BudgetProgressCard';
-import { buildBudgetOverview, parseBudgetAmount } from './budgetModel';
+import {
+  createBudgetProgress,
+  parseBudgetAmount,
+  totalExpenseYen,
+} from './budgetModel';
 
 interface BudgetPageProps {
   budgetRepository: BudgetRepository;
   transactionRepository: TransactionRepository;
-  expenseCategories: ExpenseCategory[];
   monthKey: MonthKey;
   revision: number;
   onMonthChange: (monthKey: MonthKey) => void;
   onChanged: () => void;
 }
 
-type BudgetEditorTarget =
-  | {
-      type: 'monthly';
-      title: string;
-      currentAmountYen: number | null;
-    }
-  | {
-      type: 'category';
-      title: string;
-      expenseCategoryId: string;
-      currentAmountYen: number | null;
-    };
-
-type BudgetDeleteTarget =
-  | { type: 'monthly'; title: string }
-  | { type: 'category'; title: string; expenseCategoryId: string };
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : '予算を更新できませんでした。';
+interface BudgetPageData {
+  settings: BudgetSettings;
+  monthlyBudget: MonthlyBudget | null;
+  transactions: Transaction[];
 }
 
 export function BudgetPage({
   budgetRepository,
   transactionRepository,
-  expenseCategories,
   monthKey,
   revision,
   onMonthChange,
   onChanged,
 }: BudgetPageProps): React.JSX.Element {
-  const [monthData, setMonthData] = useState<BudgetMonthData | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [editor, setEditor] = useState<BudgetEditorTarget | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<BudgetDeleteTarget | null>(null);
+  const [data, setData] = useState<BudgetPageData | null>(null);
   const [amount, setAmount] = useState('');
-  const [formError, setFormError] = useState('');
-  const [statusMessage, setStatusMessage] = useState('');
+  const [amountError, setAmountError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [message, setMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
   const load = async (): Promise<void> => {
-    setIsLoading(true);
     setLoadError('');
     try {
-      const [nextMonthData, nextTransactions] = await Promise.all([
+      const [budgetData, transactions] = await Promise.all([
         budgetRepository.getMonthData(monthKey),
         transactionRepository.listByMonth(monthKey),
       ]);
-      setMonthData(nextMonthData);
-      setTransactions(nextTransactions);
+      setData({ ...budgetData, transactions });
+      setAmount(
+        budgetData.monthlyBudget === null
+          ? ''
+          : String(budgetData.monthlyBudget.baseAmountYen),
+      );
     } catch (error: unknown) {
-      setLoadError(errorMessage(error));
-    } finally {
-      setIsLoading(false);
+      setLoadError(
+        error instanceof Error ? error.message : '予算を読み込めませんでした。',
+      );
     }
   };
 
   useEffect(() => {
-    let disposed = false;
-    setIsLoading(true);
-    setLoadError('');
-    void Promise.all([
-      budgetRepository.getMonthData(monthKey),
-      transactionRepository.listByMonth(monthKey),
-    ])
-      .then(([nextMonthData, nextTransactions]) => {
-        if (disposed) return;
-        setMonthData(nextMonthData);
-        setTransactions(nextTransactions);
-      })
-      .catch((error: unknown) => {
-        if (!disposed) setLoadError(errorMessage(error));
-      })
-      .finally(() => {
-        if (!disposed) setIsLoading(false);
-      });
-    return () => {
-      disposed = true;
-    };
-  }, [budgetRepository, monthKey, revision, transactionRepository]);
+    void load();
+  }, [monthKey, revision]);
 
-  const overview = useMemo(
-    () =>
-      monthData === null
-        ? null
-        : buildBudgetOverview(
-            monthData.monthlyBudget,
-            monthData.categoryBudgets,
-            transactions,
-            expenseCategories,
-          ),
-    [expenseCategories, monthData, transactions],
-  );
+  const progress = useMemo(() => {
+    if (data === null || data.monthlyBudget === null) return null;
+    return createBudgetProgress(data.monthlyBudget, totalExpenseYen(data.transactions));
+  }, [data]);
 
-  const categoryProgressById = useMemo(
-    () => new Map(overview?.categories.map((item) => [item.expenseCategoryId, item]) ?? []),
-    [overview],
-  );
-
-  const orderedCategories = useMemo(
-    () =>
-      [...expenseCategories].sort((left, right) => {
-        const leftHasBudget = categoryProgressById.has(left.id);
-        const rightHasBudget = categoryProgressById.has(right.id);
-        if (leftHasBudget !== rightHasBudget) return leftHasBudget ? -1 : 1;
-        if (left.isActive !== right.isActive) return left.isActive ? -1 : 1;
-        return left.name.localeCompare(right.name, 'ja');
-      }),
-    [categoryProgressById, expenseCategories],
-  );
-
-  const openEditor = (target: BudgetEditorTarget): void => {
-    setEditor(target);
-    setAmount(target.currentAmountYen === null ? '' : String(target.currentAmountYen));
-    setFormError('');
-    setStatusMessage('');
-  };
-
-  const saveBudget = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
-    if (editor === null) return;
     const parsed = parseBudgetAmount(amount);
     if (!parsed.ok) {
-      setFormError(parsed.message);
+      setAmountError(parsed.message);
       return;
     }
 
     setIsSaving(true);
-    setFormError('');
+    setAmountError('');
+    setMessage('');
     try {
-      if (editor.type === 'monthly') {
-        await budgetRepository.setMonthlyBudget(monthKey, parsed.amountYen);
-      } else {
-        await budgetRepository.setCategoryBudget(
-          monthKey,
-          editor.expenseCategoryId,
-          parsed.amountYen,
-        );
-      }
-      setEditor(null);
-      setStatusMessage(`${editor.title}を保存しました。`);
+      const hadBudget = data?.monthlyBudget !== null;
+      await budgetRepository.setMonthlyBudget(monthKey, parsed.amountYen);
       await load();
       onChanged();
+      setMessage(hadBudget ? '月予算を変更しました。' : '月予算を設定しました。');
     } catch (error: unknown) {
-      setFormError(errorMessage(error));
+      setAmountError(error instanceof Error ? error.message : '予算を保存できませんでした。');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const toggleCarryover = async (enabled: boolean): Promise<void> => {
+    setMessage('');
+    try {
+      await budgetRepository.updateSettings({ monthlyCarryoverEnabled: enabled });
+      await load();
+      onChanged();
+      setMessage(enabled ? '予算の繰越を有効にしました。' : '予算の繰越を無効にしました。');
+    } catch (error: unknown) {
+      setLoadError(error instanceof Error ? error.message : '繰越設定を変更できませんでした。');
     }
   };
 
   const deleteBudget = async (): Promise<void> => {
-    if (deleteTarget === null) return;
-    setIsSaving(true);
-    setFormError('');
     try {
-      if (deleteTarget.type === 'monthly') {
-        await budgetRepository.deleteMonthlyBudget(monthKey);
-      } else {
-        await budgetRepository.deleteCategoryBudget(
-          monthKey,
-          deleteTarget.expenseCategoryId,
-        );
-      }
-      const title = deleteTarget.title;
-      setDeleteTarget(null);
-      setStatusMessage(`${title}を削除しました。`);
+      await budgetRepository.deleteMonthlyBudget(monthKey);
+      setShowDeleteConfirmation(false);
       await load();
       onChanged();
+      setMessage('月予算を削除しました。');
     } catch (error: unknown) {
-      setFormError(errorMessage(error));
-    } finally {
-      setIsSaving(false);
+      setLoadError(error instanceof Error ? error.message : '月予算を削除できませんでした。');
     }
   };
 
-  const changeMonth = (delta: number): void => {
-    onMonthChange(shiftMonthKey(monthKey, delta));
-    setStatusMessage('');
-    setEditor(null);
-    setDeleteTarget(null);
-  };
-
-  if (isLoading) return <section className="empty-panel"><p>予算を読み込み中…</p></section>;
-
-  if (loadError !== '') {
-    return (
-      <section className="empty-panel" role="alert">
-        <h2>予算を読み込めませんでした</h2>
-        <p>{loadError}</p>
-        <button type="button" className="secondary-button" onClick={() => void load()}>
-          再試行
-        </button>
-      </section>
-    );
-  }
-
-  if (monthData === null || overview === null) {
-    return <section className="empty-panel"><p>予算データがありません。</p></section>;
-  }
-
   return (
     <div className="page-stack">
-      {statusMessage !== '' && (
-        <div className="status-message success" role="status">{statusMessage}</div>
-      )}
-
       <section className="month-card" aria-label="予算を表示する月">
-        <button type="button" className="icon-button" aria-label="前の月" onClick={() => changeMonth(-1)}>‹</button>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="前の月"
+          onClick={() => onMonthChange(shiftMonthKey(monthKey, -1))}
+        >
+          ‹
+        </button>
         <div className="month-title">
-          <small>BUDGET</small>
+          <small>MONTHLY BUDGET</small>
           <strong>{formatMonthKey(monthKey)}</strong>
         </div>
-        <button type="button" className="icon-button" aria-label="次の月" onClick={() => changeMonth(1)}>›</button>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="次の月"
+          onClick={() => onMonthChange(shiftMonthKey(monthKey, 1))}
+        >
+          ›
+        </button>
       </section>
 
-      <section className="budget-rule-card">
-        <div>
-          <span>月全体の繰越</span>
-          <strong>{monthData.settings.monthlyCarryoverEnabled ? 'ON' : 'OFF'}</strong>
-        </div>
-        <div>
-          <span>カテゴリ別の繰越</span>
-          <strong>{monthData.settings.categoryCarryoverEnabled ? 'ON' : 'OFF'}</strong>
-        </div>
-        <p>繰越設定は設定タブから変更できます。超過額は翌月へ繰り越しません。</p>
-      </section>
+      {message !== '' && <div className="status-message success" role="status">{message}</div>}
+      {loadError !== '' && (
+        <section className="empty-panel" role="alert">
+          <h2>予算を読み込めませんでした</h2>
+          <p>{loadError}</p>
+          <button type="button" className="secondary-button" onClick={() => void load()}>
+            再試行
+          </button>
+        </section>
+      )}
 
-      <section className="budget-section">
-        <header className="budget-section-heading">
-          <div>
-            <p className="kicker">MONTHLY BUDGET</p>
-            <h2>月全体予算</h2>
-          </div>
-        </header>
-        {overview.monthly === null ? (
-          <div className="budget-unset-card">
+      {data === null && loadError === '' && <section className="empty-panel"><p>予算を読み込み中…</p></section>}
+
+      {data !== null && (
+        <>
+          <section className="budget-settings-card">
             <div>
-              <strong>月予算は未設定です</strong>
-              <p>毎月1日から月末までの支出上限を設定します。</p>
+              <h2>未使用予算の繰越</h2>
+              <p>前月に残った予算を、翌月の予算へ自動で加算します。超過額は繰り越しません。</p>
             </div>
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() => openEditor({ type: 'monthly', title: '月全体予算', currentAmountYen: null })}
-            >
-              予算を設定
-            </button>
-          </div>
-        ) : (
-          <BudgetProgressCard
-            title="月全体予算"
-            progress={overview.monthly}
-            actions={
-              <div className="budget-card-actions">
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() =>
-                    openEditor({
-                      type: 'monthly',
-                      title: '月全体予算',
-                      currentAmountYen: overview.monthly?.baseAmountYen ?? null,
-                    })
-                  }
-                >
-                  編集
-                </button>
+            <label className="switch-control">
+              <input
+                type="checkbox"
+                checked={data.settings.monthlyCarryoverEnabled}
+                onChange={(event) => void toggleCarryover(event.currentTarget.checked)}
+              />
+              <span aria-hidden="true" />
+              <b>{data.settings.monthlyCarryoverEnabled ? 'ON' : 'OFF'}</b>
+            </label>
+          </section>
+
+          {progress === null ? (
+            <section className="budget-empty-card">
+              <p className="kicker">BUDGET NOT SET</p>
+              <h2>この月の予算は未設定です</h2>
+              <p>月全体で使える金額を設定すると、使用率と残額を確認できます。</p>
+            </section>
+          ) : (
+            <BudgetProgressCard
+              title={`${formatMonthKey(monthKey)}の月予算`}
+              progress={progress}
+              actions={(
                 <button
                   type="button"
                   className="danger-text-button"
-                  onClick={() => setDeleteTarget({ type: 'monthly', title: '月全体予算' })}
+                  onClick={() => setShowDeleteConfirmation(true)}
                 >
                   削除
                 </button>
-              </div>
-            }
-          />
-        )}
-      </section>
+              )}
+            />
+          )}
 
-      <section className="budget-section">
-        <header className="budget-section-heading">
-          <div>
-            <p className="kicker">CATEGORY BUDGETS</p>
-            <h2>カテゴリ別予算</h2>
-          </div>
-          <span>{overview.categories.length}件設定</span>
-        </header>
-        <div className="category-budget-list">
-          {orderedCategories.map((category) => {
-            const progress = categoryProgressById.get(category.id);
-            if (progress === undefined) {
-              return (
-                <article className="category-budget-unset" key={category.id}>
-                  <div>
-                    <strong>{category.name}</strong>
-                    <small>{category.isActive ? '未設定' : '非表示カテゴリ・未設定'}</small>
-                  </div>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() =>
-                      openEditor({
-                        type: 'category',
-                        title: `${category.name}の予算`,
-                        expenseCategoryId: category.id,
-                        currentAmountYen: null,
-                      })
-                    }
-                  >
-                    設定
-                  </button>
-                </article>
-              );
-            }
-
-            return (
-              <BudgetProgressCard
-                key={category.id}
-                title={category.name}
-                progress={progress}
-                compact
-                actions={
-                  <div className="budget-card-actions">
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() =>
-                        openEditor({
-                          type: 'category',
-                          title: `${category.name}の予算`,
-                          expenseCategoryId: category.id,
-                          currentAmountYen: progress.baseAmountYen,
-                        })
-                      }
-                    >
-                      編集
-                    </button>
-                    <button
-                      type="button"
-                      className="danger-text-button"
-                      onClick={() =>
-                        setDeleteTarget({
-                          type: 'category',
-                          title: `${category.name}の予算`,
-                          expenseCategoryId: category.id,
-                        })
-                      }
-                    >
-                      削除
-                    </button>
-                  </div>
-                }
-              />
-            );
-          })}
-        </div>
-      </section>
-
-      {editor !== null && (
-        <div className="dialog-backdrop" role="presentation">
-          <section className="sheet-dialog" role="dialog" aria-modal="true" aria-label={editor.title}>
-            <header className="sheet-header">
+          <section className="budget-form-card">
+            <div className="section-heading">
               <div>
-                <p className="kicker">{formatMonthKey(monthKey)}</p>
-                <h2>{editor.title}</h2>
+                <p className="kicker">BASE BUDGET</p>
+                <h2>{data.monthlyBudget === null ? '月予算を設定' : '月予算を変更'}</h2>
               </div>
-              <button type="button" className="icon-button" aria-label="閉じる" onClick={() => setEditor(null)}>×</button>
-            </header>
-            <form className="budget-form" onSubmit={(event) => void saveBudget(event)} noValidate>
-              <label htmlFor="budget-amount">予算額</label>
+            </div>
+            <form className="budget-form" onSubmit={(event) => void handleSubmit(event)} noValidate>
+              <label htmlFor="monthly-budget-amount">予算額</label>
               <div className="money-field">
                 <span aria-hidden="true">¥</span>
                 <input
-                  id="budget-amount"
+                  id="monthly-budget-amount"
                   type="number"
                   inputMode="numeric"
                   min="1"
@@ -406,39 +216,51 @@ export function BudgetPage({
                   value={amount}
                   onChange={(event) => {
                     setAmount(event.currentTarget.value);
-                    setFormError('');
+                    setAmountError('');
                   }}
-                  aria-invalid={formError !== ''}
-                  required
-                  autoFocus
+                  aria-invalid={amountError !== ''}
+                  aria-describedby={amountError === '' ? undefined : 'monthly-budget-error'}
                 />
               </div>
-              <p className="budget-form-note">月途中で変更した場合も、その月の全支出に対して新しい予算額を使用します。</p>
-              {formError !== '' && <p className="form-error" role="alert">{formError}</p>}
-              <div className="form-actions">
-                <button type="button" className="secondary-button" onClick={() => setEditor(null)}>キャンセル</button>
-                <button type="submit" className="primary-button" disabled={isSaving}>{isSaving ? '保存中…' : '保存する'}</button>
-              </div>
+              {amountError !== '' && (
+                <small id="monthly-budget-error" className="field-error">{amountError}</small>
+              )}
+              <p className="budget-form-note">
+                月の途中でも変更できます。変更後の金額を基準に、残額と使用率を再計算します。
+              </p>
+              <button type="submit" className="primary-button" disabled={isSaving}>
+                {isSaving ? '保存中…' : data.monthlyBudget === null ? '予算を設定' : '変更を保存'}
+              </button>
             </form>
           </section>
-        </div>
+        </>
       )}
 
-      {deleteTarget !== null && (
+      {showDeleteConfirmation && (
         <div className="dialog-backdrop" role="presentation">
-          <section className="sheet-dialog" role="dialog" aria-modal="true" aria-label="予算を削除">
+          <section className="sheet-dialog" role="dialog" aria-modal="true" aria-label="月予算を削除">
             <header className="sheet-header">
-              <h2>予算を削除</h2>
-              <button type="button" className="icon-button" aria-label="閉じる" onClick={() => setDeleteTarget(null)}>×</button>
+              <h2>月予算を削除</h2>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="閉じる"
+                onClick={() => setShowDeleteConfirmation(false)}
+              >
+                ×
+              </button>
             </header>
             <div className="confirm-message">
-              <p><strong>{deleteTarget.title}</strong>を削除します。</p>
+              <p>{formatMonthKey(monthKey)}の月予算を削除します。</p>
               <p>翌月以降の繰越額も再計算されます。</p>
             </div>
-            {formError !== '' && <p className="form-error" role="alert">{formError}</p>}
             <div className="form-actions">
-              <button type="button" className="secondary-button" onClick={() => setDeleteTarget(null)}>キャンセル</button>
-              <button type="button" className="danger-button" disabled={isSaving} onClick={() => void deleteBudget()}>{isSaving ? '削除中…' : '削除する'}</button>
+              <button type="button" className="secondary-button" onClick={() => setShowDeleteConfirmation(false)}>
+                キャンセル
+              </button>
+              <button type="button" className="danger-button" onClick={() => void deleteBudget()}>
+                削除する
+              </button>
             </div>
           </section>
         </div>
