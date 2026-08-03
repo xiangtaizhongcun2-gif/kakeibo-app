@@ -32,7 +32,6 @@ export function createBudgetSettings(now: UtcIsoDateTime): BudgetSettings {
   return {
     id: 'budget-settings',
     monthlyCarryoverEnabled: false,
-    categoryCarryoverEnabled: false,
     updatedAt: now,
   };
 }
