@@ -3,6 +3,7 @@ import type {
   DisplaySettings,
   MonthKey,
   NotificationSettings,
+  SavingsSettings,
 } from './domain/models';
 import { APP_TABS, isAppTabId, type AppTabId } from './app/tabs';
 import { defaultAppServices, type AppServices } from './app/services';
@@ -27,6 +28,7 @@ import {
 } from './features/notifications/browserNotificationGateway';
 import type { MonthlyBudgetExceededAlert } from './features/notifications/notificationModel';
 import { NotificationSettingsCard } from './features/notifications/NotificationSettingsCard';
+import { SavingsSettingsCard } from './features/savings/SavingsSettingsCard';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { RegisterPage } from './features/transactions/RegisterPage';
 import { TransactionsPage } from './features/transactions/TransactionsPage';
@@ -38,6 +40,7 @@ import {
 interface AppReferenceData extends TransactionMasterData {
   displaySettings: DisplaySettings;
   notificationSettings: NotificationSettings;
+  savingsSettings: SavingsSettings;
 }
 
 interface AppProps {
@@ -76,12 +79,14 @@ export function App({
         paymentMethods,
         displaySettings,
         storedNotificationSettings,
+        savingsSettings,
       ] = await Promise.all([
         services.masterData.listExpenseCategories(true),
         services.masterData.listIncomeCategories(true),
         services.masterData.listPaymentMethods(true),
         services.settings.getDisplaySettings(),
         services.settings.getNotificationSettings(),
+        services.savings.getSettings(),
       ]);
 
       const currentPermission = notificationGateway.getPermission();
@@ -101,6 +106,7 @@ export function App({
         paymentMethods,
         displaySettings,
         notificationSettings,
+        savingsSettings,
       });
     } catch (error: unknown) {
       setReferenceError(
@@ -195,11 +201,13 @@ export function App({
         <HomePage
           repository={services.transactions}
           budgetRepository={services.budgets}
+          savingsSettings={referenceData.savingsSettings}
           masterData={referenceData}
           monthKey={selectedMonth}
           revision={revision}
           onMonthChange={setSelectedMonth}
           onOpenBudget={() => navigate('budget')}
+          onOpenSavings={() => navigate('settings')}
         />
       );
     }
@@ -251,6 +259,11 @@ export function App({
 
     return (
       <div className="page-stack">
+        <SavingsSettingsCard
+          settings={referenceData.savingsSettings}
+          repository={services.savings}
+          onChanged={handleSettingsChanged}
+        />
         <NotificationSettingsCard
           settings={referenceData.notificationSettings}
           settingsRepository={services.settings}
