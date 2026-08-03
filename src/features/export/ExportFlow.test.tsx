@@ -72,7 +72,7 @@ describe('Phase 7 export flow', () => {
 
     const user = userEvent.setup();
     render(<App services={services} exportGateway={gateway} />);
-    await user.click(screen.getByRole('button', { name: '収支' }));
+    await user.click(screen.getByRole('button', { name: '収支一覧' }));
     await screen.findByText('スーパー');
     await user.type(screen.getByPlaceholderText('店名・内容を検索'), 'スーパー');
     const filteredButton = screen.getByRole('button', { name: '表示中をCSV出力' });
