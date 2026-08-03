@@ -1,0 +1,13 @@
+:root {
+  --tab-active: #2f9ed3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tab-active: #78cdf2;
+  }
+}
+
+.bottom-tabs button[aria-current="page"] {
+  color: var(--tab-active);
+}
