@@ -171,9 +171,13 @@ export function TransactionsPage({
     [displaySettings.transactionListFields],
   );
 
+  const updateFilters = (changes: Partial<TransactionFilters>): void => {
+    setFilters((current) => ({ ...current, ...changes }));
+  };
+
   const changeMonth = (delta: number): void => {
     onMonthChange(shiftMonthKey(monthKey, delta));
-    setFilters((current) => ({ ...current, date: '' }));
+    updateFilters({ date: '' });
     setSelected(null);
   };
 
@@ -225,15 +229,15 @@ export function TransactionsPage({
           <input
             type="search"
             value={filters.query}
-            onChange={(event) => setFilters((current) => ({ ...current, query: event.currentTarget.value }))}
+            onChange={(event) => updateFilters({ query: event.currentTarget.value })}
             placeholder="店名・内容を検索"
           />
         </label>
         <div className="filter-grid">
-          <label><span>種類</span><select value={filters.type} onChange={(event) => setFilters((current) => ({ ...current, type: event.currentTarget.value as TransactionFilters['type'] }))}><option value="all">すべて</option><option value="expense">支出</option><option value="income">収入</option></select></label>
-          <label><span>日付</span><input type="date" value={filters.date} onChange={(event) => setFilters((current) => ({ ...current, date: event.currentTarget.value }))} /></label>
-          <label><span>カテゴリ</span><select value={filters.categoryKey} onChange={(event) => setFilters((current) => ({ ...current, categoryKey: event.currentTarget.value }))}><option value="">すべて</option><optgroup label="支出">{masterData.expenseCategories.map((category) => <option key={category.id} value={categoryKey('expense', category.id)}>{category.name}</option>)}</optgroup><optgroup label="収入">{masterData.incomeCategories.map((category) => <option key={category.id} value={categoryKey('income', category.id)}>{category.name}</option>)}</optgroup></select></label>
-          <label><span>支払い方法</span><select value={filters.paymentMethodId} onChange={(event) => setFilters((current) => ({ ...current, paymentMethodId: event.currentTarget.value }))}><option value="">すべて</option>{masterData.paymentMethods.map((paymentMethod) => <option key={paymentMethod.id} value={paymentMethod.id}>{paymentMethod.name}</option>)}</select></label>
+          <label><span>種類</span><select value={filters.type} onChange={(event) => updateFilters({ type: event.currentTarget.value as TransactionFilters['type'] })}><option value="all">すべて</option><option value="expense">支出</option><option value="income">収入</option></select></label>
+          <label><span>日付</span><input type="date" value={filters.date} onChange={(event) => updateFilters({ date: event.currentTarget.value })} /></label>
+          <label><span>カテゴリ</span><select value={filters.categoryKey} onChange={(event) => updateFilters({ categoryKey: event.currentTarget.value })}><option value="">すべて</option><optgroup label="支出">{masterData.expenseCategories.map((category) => <option key={category.id} value={categoryKey('expense', category.id)}>{category.name}</option>)}</optgroup><optgroup label="収入">{masterData.incomeCategories.map((category) => <option key={category.id} value={categoryKey('income', category.id)}>{category.name}</option>)}</optgroup></select></label>
+          <label><span>支払い方法</span><select value={filters.paymentMethodId} onChange={(event) => updateFilters({ paymentMethodId: event.currentTarget.value })}><option value="">すべて</option>{masterData.paymentMethods.map((paymentMethod) => <option key={paymentMethod.id} value={paymentMethod.id}>{paymentMethod.name}</option>)}</select></label>
         </div>
         <div className="filter-footer"><span>{filteredTransactions.length}件</span><button type="button" className="text-button" onClick={() => setFilters(EMPTY_FILTERS)}>条件をクリア</button></div>
         <div className="filtered-export-actions">
