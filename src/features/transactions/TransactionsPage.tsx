@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import type { DisplaySettings, MonthKey, Transaction } from '../../domain/models';
 import type { TransactionRepository } from '../../data/repositories/transactionRepository';
 import { TransactionsAnalyticsPanel } from '../analytics/TransactionsAnalyticsPanel';
+import type { ExportGateway } from '../export/browserExportGateway';
+import {
+  createCsvFilename,
+  createTransactionsCsv,
+  monthDateRange,
+} from '../export/exportModel';
 import { TransactionForm } from './TransactionForm';
 import {
   applyTransactionFilters,
@@ -23,6 +29,7 @@ interface TransactionsPageProps {
   displaySettings: DisplaySettings;
   monthKey: MonthKey;
   revision: number;
+  exportGateway: ExportGateway;
   onMonthChange: (monthKey: MonthKey) => void;
   onChanged: () => void;
 }
@@ -101,6 +108,7 @@ export function TransactionsPage({
   displaySettings,
   monthKey,
   revision,
+  exportGateway,
   onMonthChange,
   onChanged,
 }: TransactionsPageProps): React.JSX.Element {
@@ -111,6 +119,8 @@ export function TransactionsPage({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [exportMessage, setExportMessage] = useState('');
+  const [exportError, setExportError] = useState('');
 
   const load = async (): Promise<void> => {
     setIsLoading(true);
@@ -128,6 +138,8 @@ export function TransactionsPage({
     let disposed = false;
     setIsLoading(true);
     setLoadError('');
+    setExportMessage('');
+    setExportError('');
     void repository
       .listByMonth(monthKey)
       .then((items) => {
@@ -179,6 +191,26 @@ export function TransactionsPage({
     onChanged();
   };
 
+  const exportFilteredCsv = async (): Promise<void> => {
+    setExportMessage('');
+    setExportError('');
+    try {
+      const result = await exportGateway.shareOrDownloadCsv(
+        createTransactionsCsv(filteredTransactions, masterData),
+        createCsvFilename(monthDateRange(monthKey), 'filtered'),
+      );
+      setExportMessage(
+        result === 'shared'
+          ? '表示中の収支をCSVで共有しました。'
+          : '表示中の収支をCSVで保存しました。',
+      );
+    } catch (error: unknown) {
+      setExportError(
+        error instanceof Error ? error.message : 'CSVを出力できませんでした。',
+      );
+    }
+  };
+
   return (
     <div className="page-stack">
       <section className="month-card" aria-label="表示する月">
@@ -204,6 +236,19 @@ export function TransactionsPage({
           <label><span>支払い方法</span><select value={filters.paymentMethodId} onChange={(event) => setFilters((current) => ({ ...current, paymentMethodId: event.currentTarget.value }))}><option value="">すべて</option>{masterData.paymentMethods.map((paymentMethod) => <option key={paymentMethod.id} value={paymentMethod.id}>{paymentMethod.name}</option>)}</select></label>
         </div>
         <div className="filter-footer"><span>{filteredTransactions.length}件</span><button type="button" className="text-button" onClick={() => setFilters(EMPTY_FILTERS)}>条件をクリア</button></div>
+        <div className="filtered-export-actions">
+          <span className={`filtered-export-status${exportError === '' ? '' : ' error'}`} role="status">
+            {exportError === '' ? exportMessage : exportError}
+          </span>
+          <button
+            type="button"
+            className="text-button"
+            disabled={filteredTransactions.length === 0}
+            onClick={() => void exportFilteredCsv()}
+          >
+            表示中をCSV出力
+          </button>
+        </div>
       </section>
 
       {!isLoading && loadError === '' && displaySettings.showFilteredSummary && (
