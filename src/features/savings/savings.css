@@ -112,19 +112,22 @@
 }
 
 .savings-form > label,
-.savings-goal-fields label {
-  display: grid;
-  gap: 7px;
+.savings-goal-field > label {
   font-size: 0.76rem;
   font-weight: 700;
 }
 
-.savings-goal-fields {
+.savings-goal-fields,
+.savings-goal-field {
   display: grid;
   gap: 12px;
 }
 
-.savings-goal-fields input[type='text'] {
+.savings-goal-field {
+  gap: 7px;
+}
+
+.savings-goal-field input[type='text'] {
   width: 100%;
 }
 
