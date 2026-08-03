@@ -10,6 +10,7 @@ import type {
   NotificationState,
   OnboardingState,
   PaymentMethod,
+  SavingsSettings,
   Transaction,
 } from '../../domain/models';
 import {
@@ -22,6 +23,9 @@ import {
 
 export const BACKUP_FORMAT = 'my-kakeibo-backup';
 export const BACKUP_FORMAT_VERSION = 1;
+
+const PREVIOUS_DATABASE_VERSION = 2;
+const PREVIOUS_DATA_VERSION = 3;
 
 export interface BackupCompatibility {
   databaseVersion: number;
@@ -36,6 +40,7 @@ export interface BackupSnapshot {
   monthlyBudgets: MonthlyBudget[];
   categoryBudgets: CategoryBudget[];
   budgetSettings: BudgetSettings[];
+  savingsSettings: SavingsSettings[];
   notificationStates: NotificationState[];
   displaySettings: DisplaySettings[];
   notificationSettings: NotificationSettings[];
@@ -250,7 +255,9 @@ function validateMonthlyBudget(value: unknown, label: string): void {
     required(source, 'effectiveAmountYen', label),
     `${label}.effectiveAmountYen`,
   );
-  if (effective !== base + carryover) fail(label, '有効予算が基本予算と繰越額の合計と一致しません。');
+  if (effective !== base + carryover) {
+    fail(label, '有効予算が基本予算と繰越額の合計と一致しません。');
+  }
   timestamps(source, label);
 }
 
@@ -268,7 +275,9 @@ function validateCategoryBudget(value: unknown, label: string): void {
     required(source, 'effectiveAmountYen', label),
     `${label}.effectiveAmountYen`,
   );
-  if (effective !== base + carryover) fail(label, '有効予算が基本予算と繰越額の合計と一致しません。');
+  if (effective !== base + carryover) {
+    fail(label, '有効予算が基本予算と繰越額の合計と一致しません。');
+  }
   timestamps(source, label);
 }
 
@@ -281,6 +290,24 @@ function validateBudgetSettings(value: unknown, label: string): void {
     required(source, 'monthlyCarryoverEnabled', label),
     `${label}.monthlyCarryoverEnabled`,
   );
+  utc(required(source, 'updatedAt', label), `${label}.updatedAt`);
+}
+
+function validateSavingsSettings(value: unknown, label: string): void {
+  const source = record(value, label);
+  if (text(required(source, 'id', label), `${label}.id`) !== 'savings-settings') {
+    fail(`${label}.id`, 'savings-settingsではありません。');
+  }
+  nonNegativeMoney(required(source, 'balanceYen', label), `${label}.balanceYen`);
+  const goalName = text(required(source, 'goalName', label), `${label}.goalName`);
+  if (goalName.length > 40) fail(`${label}.goalName`, '40文字を超えています。');
+  const goalAmount = required(source, 'goalAmountYen', label);
+  if (goalAmount === null) {
+    if (goalName.trim() !== '') fail(label, '目標名だけが設定されています。');
+  } else {
+    positiveMoney(goalAmount, `${label}.goalAmountYen`);
+    if (goalName.trim() === '') fail(label, '目標金額だけが設定されています。');
+  }
   utc(required(source, 'updatedAt', label), `${label}.updatedAt`);
 }
 
@@ -314,7 +341,9 @@ function validateDisplaySettings(value: unknown, label: string): void {
     text(field, `${label}.transactionListFields[${index}]`),
   );
   names.forEach((field) => {
-    if (!LIST_FIELDS.has(field)) fail(`${label}.transactionListFields`, '未対応の表示項目です。');
+    if (!LIST_FIELDS.has(field)) {
+      fail(`${label}.transactionListFields`, '未対応の表示項目です。');
+    }
   });
   assertUniqueStrings(names, `${label}.transactionListFields`);
   booleanValue(required(source, 'showFilteredSummary', label), `${label}.showFilteredSummary`);
@@ -377,13 +406,11 @@ function validateArrayItems(
 }
 
 function objectId(value: unknown): string {
-  const source = value as UnknownRecord;
-  return source.id as string;
+  return (value as UnknownRecord).id as string;
 }
 
 function assertUniqueStrings(values: readonly string[], label: string): void {
-  const unique = new Set(values);
-  if (unique.size !== values.length) fail(label, '重複があります。');
+  if (new Set(values).size !== values.length) fail(label, '重複があります。');
 }
 
 function assertUniqueIds(items: readonly unknown[], label: string): void {
@@ -401,10 +428,22 @@ function validateReferences(data: BackupSnapshot): void {
   const incomeIds = new Set(data.incomeCategories.map((item) => item.id));
   const paymentIds = new Set(data.paymentMethods.map((item) => item.id));
 
-  assertUniqueStrings(data.expenseCategories.map((item) => item.name), 'data.expenseCategories.name');
-  assertUniqueStrings(data.incomeCategories.map((item) => item.name), 'data.incomeCategories.name');
-  assertUniqueStrings(data.paymentMethods.map((item) => item.name), 'data.paymentMethods.name');
-  assertUniqueStrings(data.monthlyBudgets.map((item) => item.monthKey), 'data.monthlyBudgets.monthKey');
+  assertUniqueStrings(
+    data.expenseCategories.map((item) => item.name),
+    'data.expenseCategories.name',
+  );
+  assertUniqueStrings(
+    data.incomeCategories.map((item) => item.name),
+    'data.incomeCategories.name',
+  );
+  assertUniqueStrings(
+    data.paymentMethods.map((item) => item.name),
+    'data.paymentMethods.name',
+  );
+  assertUniqueStrings(
+    data.monthlyBudgets.map((item) => item.monthKey),
+    'data.monthlyBudgets.monthKey',
+  );
   assertUniqueStrings(
     data.categoryBudgets.map((item) => `${item.monthKey}:${item.expenseCategoryId}`),
     'data.categoryBudgets.monthKey+expenseCategoryId',
@@ -474,6 +513,16 @@ function validateReferences(data: BackupSnapshot): void {
   });
 }
 
+function createDefaultSavingsSettings(createdAt: string): SavingsSettings {
+  return {
+    id: 'savings-settings',
+    balanceYen: 0,
+    goalName: '',
+    goalAmountYen: null,
+    updatedAt: createdAt,
+  };
+}
+
 export function createBackupDocument(
   data: BackupSnapshot,
   compatibility: BackupCompatibility,
@@ -517,17 +566,27 @@ export function parseBackupJson(
   if (text(required(root, 'format', 'backup'), 'backup.format') !== BACKUP_FORMAT) {
     fail('backup.format', 'My家計簿のバックアップではありません。');
   }
-  if (integer(required(root, 'formatVersion', 'backup'), 'backup.formatVersion', 1) !== BACKUP_FORMAT_VERSION) {
+  if (
+    integer(required(root, 'formatVersion', 'backup'), 'backup.formatVersion', 1) !==
+    BACKUP_FORMAT_VERSION
+  ) {
     fail('backup.formatVersion', '未対応のバックアップ形式です。');
   }
-  utc(required(root, 'createdAt', 'backup'), 'backup.createdAt');
+
+  const createdAt = utc(required(root, 'createdAt', 'backup'), 'backup.createdAt');
   const databaseVersion = integer(
     required(root, 'databaseVersion', 'backup'),
     'backup.databaseVersion',
     1,
   );
   const dataVersion = integer(required(root, 'dataVersion', 'backup'), 'backup.dataVersion', 1);
-  if (databaseVersion !== compatibility.databaseVersion || dataVersion !== compatibility.dataVersion) {
+  const isCurrent =
+    databaseVersion === compatibility.databaseVersion &&
+    dataVersion === compatibility.dataVersion;
+  const isPrevious =
+    databaseVersion === PREVIOUS_DATABASE_VERSION &&
+    dataVersion === PREVIOUS_DATA_VERSION;
+  if (!isCurrent && !isPrevious) {
     fail('backup', '現在のアプリと互換性のないデータバージョンです。');
   }
 
@@ -552,7 +611,7 @@ export function parseBackupJson(
     'data.paymentMethods',
     validatePaymentMethod,
   );
-  validateArrayItems(
+  const monthlyBudgets = validateArrayItems(
     required(dataSource, 'monthlyBudgets', 'backup.data'),
     'data.monthlyBudgets',
     validateMonthlyBudget,
@@ -567,6 +626,15 @@ export function parseBackupJson(
     'data.budgetSettings',
     validateBudgetSettings,
   );
+  const savingsSettings = Object.prototype.hasOwnProperty.call(dataSource, 'savingsSettings')
+    ? validateArrayItems(
+        dataSource.savingsSettings,
+        'data.savingsSettings',
+        validateSavingsSettings,
+      )
+    : isPrevious
+      ? [createDefaultSavingsSettings(createdAt)]
+      : fail('backup.data', '必須項目「savingsSettings」がありません。');
   const notificationStates = validateArrayItems(
     required(dataSource, 'notificationStates', 'backup.data'),
     'data.notificationStates',
@@ -600,8 +668,15 @@ export function parseBackupJson(
     ['paymentMethods', paymentMethods],
     ['categoryBudgets', categoryBudgets],
     ['notificationStates', notificationStates],
-  ].forEach(([label, items]) => assertUniqueIds(items as unknown[], `data.${String(label)}`));
+  ].forEach(([label, items]) =>
+    assertUniqueIds(items as unknown[], `data.${String(label)}`),
+  );
+  assertUniqueStrings(
+    (monthlyBudgets as MonthlyBudget[]).map((item) => item.monthKey),
+    'data.monthlyBudgets.monthKey',
+  );
   assertSingleton(budgetSettings, 'budget-settings', 'data.budgetSettings');
+  assertSingleton(savingsSettings, 'savings-settings', 'data.savingsSettings');
   assertSingleton(displaySettings, 'display-settings', 'data.displaySettings');
   assertSingleton(notificationSettings, 'notification-settings', 'data.notificationSettings');
   assertSingleton(onboardingStates, 'onboarding', 'data.onboardingStates');
@@ -615,7 +690,37 @@ export function parseBackupJson(
     fail('data.appMetadata[0]', 'ヘッダーのバージョンと一致しません。');
   }
 
-  const document = parsed as BackupDocument;
+  const normalizedMetadata: AppMetadata = isPrevious
+    ? {
+        ...metadata,
+        databaseVersion: compatibility.databaseVersion,
+        dataVersion: compatibility.dataVersion,
+        lastMigratedAt: createdAt,
+      }
+    : metadata;
+
+  const document: BackupDocument = {
+    format: BACKUP_FORMAT,
+    formatVersion: BACKUP_FORMAT_VERSION,
+    createdAt,
+    databaseVersion: compatibility.databaseVersion,
+    dataVersion: compatibility.dataVersion,
+    data: {
+      transactions: transactions as Transaction[],
+      expenseCategories: expenseCategories as ExpenseCategory[],
+      incomeCategories: incomeCategories as IncomeCategory[],
+      paymentMethods: paymentMethods as PaymentMethod[],
+      monthlyBudgets: monthlyBudgets as MonthlyBudget[],
+      categoryBudgets: categoryBudgets as CategoryBudget[],
+      budgetSettings: budgetSettings as BudgetSettings[],
+      savingsSettings: savingsSettings as SavingsSettings[],
+      notificationStates: notificationStates as NotificationState[],
+      displaySettings: displaySettings as DisplaySettings[],
+      notificationSettings: notificationSettings as NotificationSettings[],
+      onboardingStates: onboardingStates as OnboardingState[],
+      appMetadata: [normalizedMetadata],
+    },
+  };
   validateReferences(document.data);
   return document;
 }
