@@ -60,12 +60,14 @@ export class TransactionRepository {
 
     await this.database.transaction(
       'rw',
-      this.database.transactions,
-      this.database.expenseCategories,
-      this.database.incomeCategories,
-      this.database.paymentMethods,
-      this.database.monthlyBudgets,
-      this.database.budgetSettings,
+      [
+        this.database.transactions,
+        this.database.expenseCategories,
+        this.database.incomeCategories,
+        this.database.paymentMethods,
+        this.database.monthlyBudgets,
+        this.database.budgetSettings,
+      ],
       async () => {
         await this.assertReferencesAreUsable(transaction);
         await this.database.transactions.add(transaction);
@@ -85,12 +87,14 @@ export class TransactionRepository {
 
     return this.database.transaction(
       'rw',
-      this.database.transactions,
-      this.database.expenseCategories,
-      this.database.incomeCategories,
-      this.database.paymentMethods,
-      this.database.monthlyBudgets,
-      this.database.budgetSettings,
+      [
+        this.database.transactions,
+        this.database.expenseCategories,
+        this.database.incomeCategories,
+        this.database.paymentMethods,
+        this.database.monthlyBudgets,
+        this.database.budgetSettings,
+      ],
       async () => {
         const existing = await this.database.transactions.get(id);
         if (existing === undefined) throw new Error('更新対象の収支が見つかりません。');
@@ -113,12 +117,14 @@ export class TransactionRepository {
 
     return this.database.transaction(
       'rw',
-      this.database.transactions,
-      this.database.expenseCategories,
-      this.database.incomeCategories,
-      this.database.paymentMethods,
-      this.database.monthlyBudgets,
-      this.database.budgetSettings,
+      [
+        this.database.transactions,
+        this.database.expenseCategories,
+        this.database.incomeCategories,
+        this.database.paymentMethods,
+        this.database.monthlyBudgets,
+        this.database.budgetSettings,
+      ],
       async () => {
         const existing = await this.database.transactions.get(id);
         if (existing === undefined) return false;
