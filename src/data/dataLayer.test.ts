@@ -34,8 +34,8 @@ describe('data layer', () => {
     const firstMetadata = await initializeDatabase(database);
     const secondMetadata = await initializeDatabase(database);
 
-    expect(firstMetadata.dataVersion).toBe(3);
-    expect(firstMetadata.databaseVersion).toBe(2);
+    expect(firstMetadata.dataVersion).toBe(4);
+    expect(firstMetadata.databaseVersion).toBe(3);
     expect(secondMetadata.initializedAt).toBe(firstMetadata.initializedAt);
     expectNames((await database.expenseCategories.toArray()).map(({ name }) => name), ['食費', '日用品', '交通費', '固定費', '娯楽費']);
     expectNames((await database.incomeCategories.toArray()).map(({ name }) => name), ['給与', '仕送り', '臨時収入', 'その他']);
@@ -46,9 +46,34 @@ describe('data layer', () => {
     expect(await database.budgetSettings.get('budget-settings')).toMatchObject({
       monthlyCarryoverEnabled: false,
     });
+    expect(await database.savingsSettings.get('savings-settings')).toMatchObject({
+      balanceYen: 0,
+      goalName: '',
+      goalAmountYen: null,
+    });
 
     const unset = await database.paymentMethods.get(SYSTEM_UNSET_PAYMENT_METHOD_ID);
     expect(unset).toMatchObject({ isSystem: true, isActive: true, kind: 'system-unset' });
+  });
+
+  it('データバージョン3から貯金設定を初期値で追加する', async () => {
+    const database = createTestDatabase();
+    const metadata = await initializeDatabase(database);
+    await database.savingsSettings.clear();
+    await database.appMetadata.put({
+      ...metadata,
+      databaseVersion: 2,
+      dataVersion: 3,
+    });
+
+    const migrated = await initializeDatabase(database);
+
+    expect(migrated).toMatchObject({ databaseVersion: 3, dataVersion: 4 });
+    expect(await database.savingsSettings.get('savings-settings')).toMatchObject({
+      balanceYen: 0,
+      goalName: '',
+      goalAmountYen: null,
+    });
   });
 
   it('収支の作成・更新・削除と使用回数を同じトランザクションで更新する', async () => {
