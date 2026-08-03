@@ -128,8 +128,8 @@ export function SavingsSettingsCard({
         </div>
 
         <div className="savings-goal-fields">
-          <label htmlFor="savings-goal-name">
-            <span>目標名</span>
+          <div className="savings-goal-field">
+            <label htmlFor="savings-goal-name">目標名</label>
             <input
               id="savings-goal-name"
               type="text"
@@ -141,9 +141,9 @@ export function SavingsSettingsCard({
                 setError('');
               }}
             />
-          </label>
-          <label htmlFor="savings-goal-amount">
-            <span>目標金額</span>
+          </div>
+          <div className="savings-goal-field">
+            <label htmlFor="savings-goal-amount">目標金額</label>
             <div className="money-field">
               <span aria-hidden="true">¥</span>
               <input
@@ -160,7 +160,7 @@ export function SavingsSettingsCard({
                 }}
               />
             </div>
-          </label>
+          </div>
         </div>
 
         <p className="savings-form-note">
