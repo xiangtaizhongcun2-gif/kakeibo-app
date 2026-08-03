@@ -4,7 +4,7 @@ import type {
   UtcIsoDateTime,
 } from '../domain/models';
 import type { MyKakeiboDatabase } from './database';
-import { CURRENT_DATA_VERSION } from './initialData';
+import { createBudgetSettings, CURRENT_DATA_VERSION } from './initialData';
 
 const VALID_LIST_FIELDS: readonly TransactionListField[] = [
   'amount',
@@ -53,6 +53,14 @@ export async function runDataMigrations(
           });
         }
         dataVersion = 2;
+        break;
+      }
+      case 2: {
+        const budgetSettings = await database.budgetSettings.get('budget-settings');
+        if (budgetSettings === undefined) {
+          await database.budgetSettings.put(createBudgetSettings(now));
+        }
+        dataVersion = 3;
         break;
       }
       default:

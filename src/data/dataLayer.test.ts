@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { MyKakeiboDatabase } from './database';
 import { initializeDatabase } from './initializeDatabase';
 import { SYSTEM_UNSET_PAYMENT_METHOD_ID } from './initialData';
+import { BudgetRepository } from './repositories/budgetRepository';
 import { MasterDataRepository } from './repositories/masterDataRepository';
 import { TransactionRepository } from './repositories/transactionRepository';
 
@@ -33,13 +34,17 @@ describe('data layer', () => {
     const firstMetadata = await initializeDatabase(database);
     const secondMetadata = await initializeDatabase(database);
 
-    expect(firstMetadata.dataVersion).toBe(2);
+    expect(firstMetadata.dataVersion).toBe(3);
+    expect(firstMetadata.databaseVersion).toBe(2);
     expect(secondMetadata.initializedAt).toBe(firstMetadata.initializedAt);
     expectNames((await database.expenseCategories.toArray()).map(({ name }) => name), ['食費', '日用品', '交通費', '固定費', '娯楽費']);
     expectNames((await database.incomeCategories.toArray()).map(({ name }) => name), ['給与', '仕送り', '臨時収入', 'その他']);
     expectNames((await database.paymentMethods.toArray()).map(({ name }) => name), ['未設定', '現金', 'クレジットカード', '電子マネー', '銀行振込']);
     expect(await database.displaySettings.get('display-settings')).toMatchObject({
       transactionListFields: ['amount', 'category', 'paymentMethod', 'merchant', 'content'],
+    });
+    expect(await database.budgetSettings.get('budget-settings')).toMatchObject({
+      monthlyCarryoverEnabled: false,
     });
 
     const unset = await database.paymentMethods.get(SYSTEM_UNSET_PAYMENT_METHOD_ID);
@@ -104,5 +109,83 @@ describe('data layer', () => {
     expect(await database.paymentMethods.get('payment-method-credit-card')).toBeUndefined();
     expect(await transactions.getById(created.id)).toMatchObject({ type: 'expense', paymentMethodId: SYSTEM_UNSET_PAYMENT_METHOD_ID });
     expect(await database.paymentMethods.get(SYSTEM_UNSET_PAYMENT_METHOD_ID)).toMatchObject({ usageCount: 1 });
+  });
+
+  it('月予算の正の残額だけを翌月へ繰り越し、過去支出の変更後に再計算する', async () => {
+    const database = createTestDatabase();
+    await initializeDatabase(database);
+    const transactions = new TransactionRepository(database);
+    const budgets = new BudgetRepository(database);
+
+    await budgets.updateSettings({ monthlyCarryoverEnabled: true });
+    await budgets.setMonthlyBudget('2026-08', 10000);
+    await budgets.setMonthlyBudget('2026-09', 8000);
+
+    const expense = await transactions.create({
+      type: 'expense',
+      amountYen: 4000,
+      date: '2026-08-10',
+      expenseCategoryId: 'expense-category-1',
+      paymentMethodId: 'payment-method-cash',
+      merchant: 'スーパー',
+      content: '食料品',
+    });
+
+    expect(await database.monthlyBudgets.get('2026-09')).toMatchObject({
+      carryoverAmountYen: 6000,
+      effectiveAmountYen: 14000,
+    });
+
+    await transactions.replace(expense.id, {
+      type: 'expense',
+      amountYen: 9000,
+      date: '2026-08-10',
+      expenseCategoryId: 'expense-category-1',
+      paymentMethodId: 'payment-method-cash',
+      merchant: 'スーパー',
+      content: '食料品',
+    });
+
+    expect(await database.monthlyBudgets.get('2026-09')).toMatchObject({
+      carryoverAmountYen: 1000,
+      effectiveAmountYen: 9000,
+    });
+  });
+
+  it('月途中の予算変更と繰越OFFを翌月以降へ反映する', async () => {
+    const database = createTestDatabase();
+    await initializeDatabase(database);
+    const budgets = new BudgetRepository(database);
+    const transactions = new TransactionRepository(database);
+
+    await budgets.updateSettings({ monthlyCarryoverEnabled: true });
+    await budgets.setMonthlyBudget('2026-08', 10000);
+    await budgets.setMonthlyBudget('2026-09', 8000);
+    await transactions.create({
+      type: 'expense',
+      amountYen: 2500,
+      date: '2026-08-05',
+      expenseCategoryId: 'expense-category-1',
+      paymentMethodId: 'payment-method-cash',
+      merchant: 'スーパー',
+      content: '食料品',
+    });
+
+    expect(await database.monthlyBudgets.get('2026-09')).toMatchObject({
+      carryoverAmountYen: 7500,
+      effectiveAmountYen: 15500,
+    });
+
+    await budgets.setMonthlyBudget('2026-08', 6000);
+    expect(await database.monthlyBudgets.get('2026-09')).toMatchObject({
+      carryoverAmountYen: 3500,
+      effectiveAmountYen: 11500,
+    });
+
+    await budgets.updateSettings({ monthlyCarryoverEnabled: false });
+    expect(await database.monthlyBudgets.get('2026-09')).toMatchObject({
+      carryoverAmountYen: 0,
+      effectiveAmountYen: 8000,
+    });
   });
 });

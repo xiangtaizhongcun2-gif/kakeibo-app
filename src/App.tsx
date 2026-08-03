@@ -5,6 +5,7 @@ import { defaultAppServices, type AppServices } from './app/services';
 import { AppShell } from './components/AppShell';
 import { PwaUpdateBanner } from './components/PwaUpdateBanner';
 import { HomePage } from './features/analytics/HomePage';
+import { BudgetPage } from './features/budget/BudgetPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { RegisterPage } from './features/transactions/RegisterPage';
 import { TransactionsPage } from './features/transactions/TransactionsPage';
@@ -24,10 +25,6 @@ interface AppProps {
 function readTab(): AppTabId {
   const value = window.location.hash.replace(/^#\/?/, '');
   return isAppTabId(value) ? value : 'home';
-}
-
-function EmptyPage({ title, text }: { title: string; text: string }): React.JSX.Element {
-  return <section className="empty-panel"><h2>{title}</h2><p>{text}</p></section>;
 }
 
 export function App({ services = defaultAppServices }: AppProps): React.JSX.Element {
@@ -107,10 +104,12 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
       return (
         <HomePage
           repository={services.transactions}
+          budgetRepository={services.budgets}
           masterData={referenceData}
           monthKey={selectedMonth}
           revision={revision}
           onMonthChange={setSelectedMonth}
+          onOpenBudget={() => navigate('budget')}
         />
       );
     }
@@ -147,7 +146,16 @@ export function App({ services = defaultAppServices }: AppProps): React.JSX.Elem
     }
 
     if (activeTab === 'budget') {
-      return <EmptyPage title="予算" text="予算機能はPhase 5で実装します。" />;
+      return (
+        <BudgetPage
+          budgetRepository={services.budgets}
+          transactionRepository={services.transactions}
+          monthKey={selectedMonth}
+          revision={revision}
+          onMonthChange={setSelectedMonth}
+          onChanged={handleDataChanged}
+        />
+      );
     }
 
     return (
