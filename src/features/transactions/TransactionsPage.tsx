@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import type {
-  DisplaySettings,
-  MonthKey,
-  Transaction,
-} from '../../domain/models';
+import type { DisplaySettings, MonthKey, Transaction } from '../../domain/models';
 import type { TransactionRepository } from '../../data/repositories/transactionRepository';
+import { TransactionsAnalyticsPanel } from '../analytics/TransactionsAnalyticsPanel';
 import { TransactionForm } from './TransactionForm';
 import {
   applyTransactionFilters,
@@ -208,6 +205,13 @@ export function TransactionsPage({
         </div>
         <div className="filter-footer"><span>{filteredTransactions.length}件</span><button type="button" className="text-button" onClick={() => setFilters(EMPTY_FILTERS)}>条件をクリア</button></div>
       </section>
+
+      {!isLoading && loadError === '' && displaySettings.showFilteredSummary && (
+        <TransactionsAnalyticsPanel
+          transactions={filteredTransactions}
+          masterData={masterData}
+        />
+      )}
 
       {isLoading && <section className="empty-panel"><p>読み込み中…</p></section>}
       {loadError !== '' && <section className="empty-panel" role="alert"><h2>読み込めませんでした</h2><p>{loadError}</p><button type="button" className="secondary-button" onClick={() => void load()}>再試行</button></section>}

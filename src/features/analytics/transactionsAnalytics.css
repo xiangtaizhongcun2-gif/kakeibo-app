@@ -1,0 +1,29 @@
+.filtered-analytics {
+  display: grid;
+  gap: 12px;
+}
+
+.filtered-analytics-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px 0;
+}
+
+.filtered-analytics-heading h2 {
+  font-size: 1rem;
+}
+
+.filtered-analytics-heading > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.filtered-analytics .summary-card {
+  box-shadow: none;
+}
+
+.filtered-analytics .analytics-card {
+  box-shadow: none;
+}

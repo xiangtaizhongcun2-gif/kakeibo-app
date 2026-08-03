@@ -5,11 +5,14 @@ import { App } from './App';
 import { createAppServices, type AppServices } from './app/services';
 import { MyKakeiboDatabase } from './data/database';
 import { initializeDatabase } from './data/initializeDatabase';
+import { toLocalDate } from './domain/valueObjects';
+import { currentMonthKey, shiftMonthKey } from './features/transactions/transactionModel';
 
 let database: MyKakeiboDatabase;
 let services: AppServices;
 
 beforeEach(async () => {
+  window.location.hash = '';
   database = new MyKakeiboDatabase(`app-test-${crypto.randomUUID()}`);
   await initializeDatabase(database);
   services = createAppServices(database);
@@ -21,11 +24,13 @@ afterEach(async () => {
 });
 
 describe('App', () => {
-  it('5つのメインタブを表示する', async () => {
+  it('5つのメインタブと支出0件のホーム空状態を表示する', async () => {
     render(<App services={services} />);
     const navigation = screen.getByRole('navigation', { name: 'メインメニュー' });
     expect(within(navigation).getAllByRole('button')).toHaveLength(5);
-    expect(await screen.findByRole('heading', { name: 'My家計簿へようこそ' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '前月との比較' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'カテゴリ別支出' })).toBeInTheDocument();
+    expect(screen.getAllByText('支出がありません')).toHaveLength(2);
   });
 
   it('設定画面から旧版データへアクセスできる', async () => {
@@ -39,7 +44,55 @@ describe('App', () => {
     );
   });
 
-  it('支出を登録して月別一覧へ表示する', async () => {
+  it('ホームに月次集計・カテゴリ比率・支払い方法別を表示する', async () => {
+    const monthKey = currentMonthKey();
+    const previousMonthKey = shiftMonthKey(monthKey, -1);
+
+    await services.transactions.create({
+      type: 'income',
+      amountYen: 5000,
+      date: toLocalDate(`${monthKey}-01`),
+      incomeCategoryId: 'income-category-1',
+      content: '今月の収入',
+    });
+    await services.transactions.create({
+      type: 'expense',
+      amountYen: 2000,
+      date: toLocalDate(`${monthKey}-01`),
+      expenseCategoryId: 'expense-category-1',
+      paymentMethodId: 'payment-method-cash',
+      merchant: 'スーパー',
+      content: '食料品',
+    });
+    await services.transactions.create({
+      type: 'expense',
+      amountYen: 1000,
+      date: toLocalDate(`${monthKey}-02`),
+      expenseCategoryId: 'expense-category-3',
+      paymentMethodId: 'payment-method-credit-card',
+      merchant: '鉄道',
+      content: '交通費',
+    });
+    await services.transactions.create({
+      type: 'income',
+      amountYen: 3000,
+      date: toLocalDate(`${previousMonthKey}-01`),
+      incomeCategoryId: 'income-category-1',
+      content: '前月の収入',
+    });
+
+    const user = userEvent.setup();
+    render(<App services={services} />);
+
+    expect(await screen.findByText(/5,000/)).toBeInTheDocument();
+    expect(screen.getAllByText(/3,000/).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /食費.*2,000.*66.7%/ })).toBeInTheDocument();
+    expect(screen.getByText('現金')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'すべて見る' }));
+    expect(screen.getByRole('dialog', { name: '支払い方法別集計' })).toBeInTheDocument();
+  });
+
+  it('支出を登録して月別一覧と集計へ表示する', async () => {
     const user = userEvent.setup();
     render(<App services={services} />);
 
@@ -56,6 +109,8 @@ describe('App', () => {
 
     expect(await screen.findByText('収支を登録しました。')).toBeInTheDocument();
     expect(await screen.findByText('スーパー')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '表示中の収支集計' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '表示中の支払い方法別' })).toBeInTheDocument();
     await waitFor(async () => expect(await database.transactions.count()).toBe(1));
   });
 
