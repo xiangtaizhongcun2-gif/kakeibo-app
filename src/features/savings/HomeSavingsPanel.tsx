@@ -1,5 +1,6 @@
 import type { SavingsSettings } from '../../domain/models';
 import { createSavingsProgress } from './savingsModel';
+import './savings.css';
 
 interface HomeSavingsPanelProps {
   settings: SavingsSettings;
