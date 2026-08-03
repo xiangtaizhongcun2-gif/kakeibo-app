@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MonthKey, Transaction } from '../../domain/models';
+import type {
+  BudgetMonthData,
+  BudgetRepository,
+} from '../../data/repositories/budgetRepository';
 import type { TransactionRepository } from '../../data/repositories/transactionRepository';
+import { HomeBudgetPanel } from '../budget/HomeBudgetPanel';
+import { buildBudgetOverview } from '../budget/budgetModel';
 import {
   formatMonthKey,
   shiftMonthKey,
@@ -16,6 +22,7 @@ import { aggregateTransactions, compareMonthlyTotals } from './analyticsModel';
 
 interface HomePageProps {
   repository: TransactionRepository;
+  budgetRepository: BudgetRepository;
   masterData: TransactionMasterData;
   monthKey: MonthKey;
   revision: number;
@@ -24,6 +31,7 @@ interface HomePageProps {
 
 export function HomePage({
   repository,
+  budgetRepository,
   masterData,
   monthKey,
   revision,
@@ -31,6 +39,7 @@ export function HomePage({
 }: HomePageProps): React.JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [previousTransactions, setPreviousTransactions] = useState<Transaction[]>([]);
+  const [budgetData, setBudgetData] = useState<BudgetMonthData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [showPaymentDetails, setShowPaymentDetails] = useState(false);
@@ -45,11 +54,13 @@ export function HomePage({
     void Promise.all([
       repository.listByMonth(monthKey),
       repository.listByMonth(previousMonthKey),
+      budgetRepository.getMonthData(monthKey),
     ])
-      .then(([currentItems, previousItems]) => {
+      .then(([currentItems, previousItems, nextBudgetData]) => {
         if (disposed) return;
         setTransactions(currentItems);
         setPreviousTransactions(previousItems);
+        setBudgetData(nextBudgetData);
       })
       .catch((error: unknown) => {
         if (!disposed) {
@@ -65,7 +76,7 @@ export function HomePage({
     return () => {
       disposed = true;
     };
-  }, [monthKey, previousMonthKey, repository, revision]);
+  }, [budgetRepository, monthKey, previousMonthKey, repository, revision]);
 
   const analytics = useMemo(
     () => aggregateTransactions(transactions, masterData),
@@ -78,6 +89,18 @@ export function HomePage({
   const comparison = useMemo(
     () => compareMonthlyTotals(analytics.totals, previousAnalytics.totals),
     [analytics.totals, previousAnalytics.totals],
+  );
+  const budgetOverview = useMemo(
+    () =>
+      budgetData === null
+        ? null
+        : buildBudgetOverview(
+            budgetData.monthlyBudget,
+            budgetData.categoryBudgets,
+            transactions,
+            masterData.expenseCategories,
+          ),
+    [budgetData, masterData.expenseCategories, transactions],
   );
 
   if (isLoading) return <section className="empty-panel"><p>集計を読み込み中…</p></section>;
@@ -117,6 +140,7 @@ export function HomePage({
       </section>
 
       <SummaryCards totals={analytics.totals} />
+      {budgetOverview !== null && <HomeBudgetPanel overview={budgetOverview} />}
 
       {analytics.totals.transactionCount === 0 && (
         <section className="analytics-card analytics-empty-home">
