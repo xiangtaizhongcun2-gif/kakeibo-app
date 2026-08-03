@@ -1,9 +1,4 @@
-import type {
-  CategoryBudget,
-  ExpenseCategory,
-  MonthlyBudget,
-  Transaction,
-} from '../../domain/models';
+import type { MonthlyBudget, Transaction } from '../../domain/models';
 
 export interface BudgetProgress {
   baseAmountYen: number;
@@ -15,18 +10,6 @@ export interface BudgetProgress {
   isExceeded: boolean;
 }
 
-export interface CategoryBudgetProgress extends BudgetProgress {
-  expenseCategoryId: string;
-  categoryName: string;
-  isCategoryActive: boolean;
-}
-
-export interface BudgetOverview {
-  monthly: BudgetProgress | null;
-  categories: CategoryBudgetProgress[];
-  exceededCategoryCount: number;
-}
-
 export type BudgetAmountResult =
   | { ok: true; amountYen: number }
   | { ok: false; message: string };
@@ -34,6 +17,14 @@ export type BudgetAmountResult =
 function usagePercent(spentAmountYen: number, effectiveAmountYen: number): number {
   if (effectiveAmountYen <= 0) return 0;
   return Math.round((spentAmountYen / effectiveAmountYen) * 1000) / 10;
+}
+
+export function totalExpenseYen(transactions: readonly Transaction[]): number {
+  return transactions.reduce(
+    (total, transaction) =>
+      transaction.type === 'expense' ? total + transaction.amountYen : total,
+    0,
+  );
 }
 
 export function createBudgetProgress(
@@ -49,52 +40,6 @@ export function createBudgetProgress(
     remainingAmountYen,
     usagePercent: usagePercent(spentAmountYen, budget.effectiveAmountYen),
     isExceeded: spentAmountYen > budget.effectiveAmountYen,
-  };
-}
-
-export function buildBudgetOverview(
-  monthlyBudget: MonthlyBudget | null,
-  categoryBudgets: readonly CategoryBudget[],
-  transactions: readonly Transaction[],
-  expenseCategories: readonly ExpenseCategory[],
-): BudgetOverview {
-  let totalExpenseYen = 0;
-  const categorySpend = new Map<string, number>();
-
-  for (const transaction of transactions) {
-    if (transaction.type !== 'expense') continue;
-    totalExpenseYen += transaction.amountYen;
-    categorySpend.set(
-      transaction.expenseCategoryId,
-      (categorySpend.get(transaction.expenseCategoryId) ?? 0) + transaction.amountYen,
-    );
-  }
-
-  const categoryById = new Map(expenseCategories.map((category) => [category.id, category]));
-  const categories = categoryBudgets
-    .map((budget): CategoryBudgetProgress => {
-      const category = categoryById.get(budget.expenseCategoryId);
-      return {
-        expenseCategoryId: budget.expenseCategoryId,
-        categoryName: category?.name ?? '削除済みカテゴリ',
-        isCategoryActive: category?.isActive ?? false,
-        ...createBudgetProgress(
-          budget,
-          categorySpend.get(budget.expenseCategoryId) ?? 0,
-        ),
-      };
-    })
-    .sort(
-      (left, right) =>
-        Number(right.isExceeded) - Number(left.isExceeded) ||
-        right.usagePercent - left.usagePercent ||
-        left.categoryName.localeCompare(right.categoryName, 'ja'),
-    );
-
-  return {
-    monthly: monthlyBudget === null ? null : createBudgetProgress(monthlyBudget, totalExpenseYen),
-    categories,
-    exceededCategoryCount: categories.filter((category) => category.isExceeded).length,
   };
 }
 
