@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import type {
+  BudgetSettings,
   DisplaySettings,
   PaymentMethod,
   PaymentMethodKind,
   TransactionListField,
 } from '../../domain/models';
+import type { BudgetRepository } from '../../data/repositories/budgetRepository';
 import type { MasterDataRepository } from '../../data/repositories/masterDataRepository';
 import type { SettingsRepository } from '../../data/repositories/settingsRepository';
 import {
@@ -16,8 +18,10 @@ import {
 interface SettingsPageProps {
   masterData: TransactionMasterData;
   displaySettings: DisplaySettings;
+  budgetSettings: BudgetSettings;
   masterDataRepository: MasterDataRepository;
   settingsRepository: SettingsRepository;
+  budgetRepository: BudgetRepository;
   onChanged: () => Promise<void>;
 }
 
@@ -41,8 +45,10 @@ function errorMessage(error: unknown): string {
 export function SettingsPage({
   masterData,
   displaySettings,
+  budgetSettings,
   masterDataRepository,
   settingsRepository,
+  budgetRepository,
   onChanged,
 }: SettingsPageProps): React.JSX.Element {
   const [expenseName, setExpenseName] = useState('');
@@ -81,6 +87,32 @@ export function SettingsPage({
         await settingsRepository.updateDisplaySettings({ transactionListFields: next });
       },
       '一覧の表示項目を更新しました。',
+    );
+  };
+
+  const toggleMonthlyCarryover = async (): Promise<void> => {
+    await run(
+      async () => {
+        await budgetRepository.updateSettings({
+          monthlyCarryoverEnabled: !budgetSettings.monthlyCarryoverEnabled,
+        });
+      },
+      budgetSettings.monthlyCarryoverEnabled
+        ? '月全体予算の繰越をOFFにしました。'
+        : '月全体予算の繰越をONにしました。',
+    );
+  };
+
+  const toggleCategoryCarryover = async (): Promise<void> => {
+    await run(
+      async () => {
+        await budgetRepository.updateSettings({
+          categoryCarryoverEnabled: !budgetSettings.categoryCarryoverEnabled,
+        });
+      },
+      budgetSettings.categoryCarryoverEnabled
+        ? 'カテゴリ別予算の繰越をOFFにしました。'
+        : 'カテゴリ別予算の繰越をONにしました。',
     );
   };
 
@@ -131,6 +163,39 @@ export function SettingsPage({
               <span>{LIST_FIELD_LABELS[field]}</span>
             </label>
           ))}
+        </div>
+      </section>
+
+      <section className="settings-card">
+        <h2>予算の繰越</h2>
+        <p className="settings-description">
+          前月の正の残額だけを翌月へ加えます。超過額は繰り越しません。
+        </p>
+        <div className="settings-toggle-list">
+          <label className="settings-toggle">
+            <span>
+              <strong>月全体予算</strong>
+              <small>月全体の未使用予算を翌月へ繰り越す</small>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={budgetSettings.monthlyCarryoverEnabled}
+              onChange={() => void toggleMonthlyCarryover()}
+            />
+          </label>
+          <label className="settings-toggle">
+            <span>
+              <strong>カテゴリ別予算</strong>
+              <small>カテゴリごとの未使用予算を翌月へ繰り越す</small>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={budgetSettings.categoryCarryoverEnabled}
+              onChange={() => void toggleCategoryCarryover()}
+            />
+          </label>
         </div>
       </section>
 
