@@ -40,6 +40,7 @@ export interface ExpenseCategory extends EntityTimestamps {
   usageCount: number;
   isActive: boolean;
   isSystem: boolean;
+  sortOrder?: number;
 }
 
 export interface IncomeCategory extends EntityTimestamps {
@@ -48,6 +49,7 @@ export interface IncomeCategory extends EntityTimestamps {
   usageCount: number;
   isActive: boolean;
   isSystem: boolean;
+  sortOrder?: number;
 }
 
 export type PaymentMethodKind =
