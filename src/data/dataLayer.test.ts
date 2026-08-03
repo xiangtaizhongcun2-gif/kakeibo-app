@@ -45,7 +45,6 @@ describe('data layer', () => {
     });
     expect(await database.budgetSettings.get('budget-settings')).toMatchObject({
       monthlyCarryoverEnabled: false,
-      categoryCarryoverEnabled: false,
     });
 
     const unset = await database.paymentMethods.get(SYSTEM_UNSET_PAYMENT_METHOD_ID);
@@ -112,20 +111,15 @@ describe('data layer', () => {
     expect(await database.paymentMethods.get(SYSTEM_UNSET_PAYMENT_METHOD_ID)).toMatchObject({ usageCount: 1 });
   });
 
-  it('月全体とカテゴリの正の残額だけを翌月へ繰り越す', async () => {
+  it('月予算の正の残額だけを翌月へ繰り越し、過去支出の変更後に再計算する', async () => {
     const database = createTestDatabase();
     await initializeDatabase(database);
     const transactions = new TransactionRepository(database);
     const budgets = new BudgetRepository(database);
 
-    await budgets.updateSettings({
-      monthlyCarryoverEnabled: true,
-      categoryCarryoverEnabled: true,
-    });
+    await budgets.updateSettings({ monthlyCarryoverEnabled: true });
     await budgets.setMonthlyBudget('2026-08', 10000);
     await budgets.setMonthlyBudget('2026-09', 8000);
-    await budgets.setCategoryBudget('2026-08', 'expense-category-1', 6000);
-    await budgets.setCategoryBudget('2026-09', 'expense-category-1', 5000);
 
     const expense = await transactions.create({
       type: 'expense',
@@ -140,10 +134,6 @@ describe('data layer', () => {
     expect(await database.monthlyBudgets.get('2026-09')).toMatchObject({
       carryoverAmountYen: 6000,
       effectiveAmountYen: 14000,
-    });
-    expect(await database.categoryBudgets.get('2026-09:expense-category-1')).toMatchObject({
-      carryoverAmountYen: 2000,
-      effectiveAmountYen: 7000,
     });
 
     await transactions.replace(expense.id, {
@@ -160,13 +150,9 @@ describe('data layer', () => {
       carryoverAmountYen: 1000,
       effectiveAmountYen: 9000,
     });
-    expect(await database.categoryBudgets.get('2026-09:expense-category-1')).toMatchObject({
-      carryoverAmountYen: 0,
-      effectiveAmountYen: 5000,
-    });
   });
 
-  it('繰越をOFFにすると保存済みの翌月予算を再計算する', async () => {
+  it('月途中の予算変更と繰越OFFを翌月以降へ反映する', async () => {
     const database = createTestDatabase();
     await initializeDatabase(database);
     const budgets = new BudgetRepository(database);
@@ -188,6 +174,12 @@ describe('data layer', () => {
     expect(await database.monthlyBudgets.get('2026-09')).toMatchObject({
       carryoverAmountYen: 7500,
       effectiveAmountYen: 15500,
+    });
+
+    await budgets.setMonthlyBudget('2026-08', 6000);
+    expect(await database.monthlyBudgets.get('2026-09')).toMatchObject({
+      carryoverAmountYen: 3500,
+      effectiveAmountYen: 11500,
     });
 
     await budgets.updateSettings({ monthlyCarryoverEnabled: false });
