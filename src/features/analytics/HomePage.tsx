@@ -6,7 +6,6 @@ import type {
 } from '../../data/repositories/budgetRepository';
 import type { TransactionRepository } from '../../data/repositories/transactionRepository';
 import { HomeBudgetPanel } from '../budget/HomeBudgetPanel';
-import { buildBudgetOverview } from '../budget/budgetModel';
 import {
   formatMonthKey,
   shiftMonthKey,
@@ -27,6 +26,7 @@ interface HomePageProps {
   monthKey: MonthKey;
   revision: number;
   onMonthChange: (monthKey: MonthKey) => void;
+  onOpenBudget: () => void;
 }
 
 export function HomePage({
@@ -36,6 +36,7 @@ export function HomePage({
   monthKey,
   revision,
   onMonthChange,
+  onOpenBudget,
 }: HomePageProps): React.JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [previousTransactions, setPreviousTransactions] = useState<Transaction[]>([]);
@@ -90,18 +91,6 @@ export function HomePage({
     () => compareMonthlyTotals(analytics.totals, previousAnalytics.totals),
     [analytics.totals, previousAnalytics.totals],
   );
-  const budgetOverview = useMemo(
-    () =>
-      budgetData === null
-        ? null
-        : buildBudgetOverview(
-            budgetData.monthlyBudget,
-            budgetData.categoryBudgets,
-            transactions,
-            masterData.expenseCategories,
-          ),
-    [budgetData, masterData.expenseCategories, transactions],
-  );
 
   if (isLoading) return <section className="empty-panel"><p>集計を読み込み中…</p></section>;
 
@@ -140,7 +129,12 @@ export function HomePage({
       </section>
 
       <SummaryCards totals={analytics.totals} />
-      {budgetOverview !== null && <HomeBudgetPanel overview={budgetOverview} />}
+      <HomeBudgetPanel
+        monthKey={monthKey}
+        budget={budgetData?.monthlyBudget ?? null}
+        transactions={transactions}
+        onOpenBudget={onOpenBudget}
+      />
 
       {analytics.totals.transactionCount === 0 && (
         <section className="analytics-card analytics-empty-home">
