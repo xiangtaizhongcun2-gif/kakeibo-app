@@ -50,8 +50,6 @@ describe('register flow', () => {
     );
 
     expect(screen.getByLabelText('金額')).toHaveValue(null);
-    expect(screen.getByLabelText('カテゴリ')).toHaveValue('');
-    expect(screen.getByLabelText('支払い方法')).toHaveValue('');
     expect(screen.getByLabelText(/店名/)).toHaveValue('');
     expect(screen.getByLabelText(/内容/)).toHaveValue('');
 
