@@ -30,6 +30,7 @@ describe('App', () => {
     expect(within(navigation).getAllByRole('button')).toHaveLength(5);
     expect(await screen.findByRole('heading', { name: '前月との比較' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'カテゴリ別支出' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '月予算は未設定です' })).toBeInTheDocument();
     expect(screen.getAllByText('支出がありません')).toHaveLength(2);
   });
 
@@ -38,9 +39,27 @@ describe('App', () => {
     render(<App services={services} />);
     await user.click(screen.getByRole('button', { name: '設定' }));
     expect(await screen.findByRole('heading', { name: '一覧の表示項目' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '予算の繰越' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '旧版の家計簿を開く' })).toHaveAttribute(
       'href',
       '/legacy/index.html',
+    );
+  });
+
+  it('設定画面で月全体とカテゴリ別の繰越を別々に変更する', async () => {
+    const user = userEvent.setup();
+    render(<App services={services} />);
+    await user.click(screen.getByRole('button', { name: '設定' }));
+
+    const switches = await screen.findAllByRole('switch');
+    expect(switches).toHaveLength(2);
+    await user.click(switches[0] as HTMLElement);
+
+    await waitFor(async () =>
+      expect(await database.budgetSettings.get('budget-settings')).toMatchObject({
+        monthlyCarryoverEnabled: true,
+        categoryCarryoverEnabled: false,
+      }),
     );
   });
 
@@ -90,6 +109,45 @@ describe('App', () => {
     expect(screen.getByText('現金')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'すべて見る' }));
     expect(screen.getByRole('dialog', { name: '支払い方法別集計' })).toBeInTheDocument();
+  });
+
+  it('予算タブで月予算を設定しホームへ反映する', async () => {
+    const monthKey = currentMonthKey();
+    await services.transactions.create({
+      type: 'expense',
+      amountYen: 4000,
+      date: toLocalDate(`${monthKey}-01`),
+      expenseCategoryId: 'expense-category-1',
+      paymentMethodId: 'payment-method-cash',
+      merchant: 'スーパー',
+      content: '食料品',
+    });
+
+    const user = userEvent.setup();
+    render(<App services={services} />);
+    await user.click(screen.getByRole('button', { name: '予算' }));
+    expect(await screen.findByRole('heading', { name: '月全体予算' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '予算を設定' }));
+    await user.type(screen.getByLabelText('予算額'), '10000');
+    await user.click(screen.getByRole('button', { name: '保存する' }));
+
+    await waitFor(async () =>
+      expect(await database.monthlyBudgets.get(monthKey)).toMatchObject({
+        baseAmountYen: 10000,
+        effectiveAmountYen: 10000,
+      }),
+    );
+    expect(await screen.findByRole('progressbar', { name: '月全体予算の使用率' })).toHaveAttribute(
+      'aria-valuetext',
+      '40%',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'ホーム' }));
+    expect(await screen.findByRole('heading', { name: '月予算の状況' })).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: '月全体予算の使用率' })).toHaveAttribute(
+      'aria-valuetext',
+      '40%',
+    );
   });
 
   it('支出を登録して月別一覧と集計へ表示する', async () => {
