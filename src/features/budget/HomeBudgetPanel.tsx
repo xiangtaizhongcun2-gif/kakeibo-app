@@ -1,37 +1,56 @@
+import type { MonthKey, MonthlyBudget, Transaction } from '../../domain/models';
+import { formatMonthKey } from '../transactions/transactionModel';
 import { BudgetProgressCard } from './BudgetProgressCard';
-import type { BudgetOverview } from './budgetModel';
+import { createBudgetProgress, totalExpenseYen } from './budgetModel';
+
+interface HomeBudgetPanelProps {
+  monthKey: MonthKey;
+  budget: MonthlyBudget | null;
+  transactions: Transaction[];
+  onOpenBudget: () => void;
+}
 
 export function HomeBudgetPanel({
-  overview,
-}: {
-  overview: BudgetOverview;
-}): React.JSX.Element {
-  if (overview.monthly === null) {
+  monthKey,
+  budget,
+  transactions,
+  onOpenBudget,
+}: HomeBudgetPanelProps): React.JSX.Element {
+  if (budget === null) {
     return (
       <section className="home-budget-empty">
-        <div>
-          <p className="kicker">MONTHLY BUDGET</p>
-          <h2>月予算は未設定です</h2>
-          <p>予算タブから設定すると、使用率と残額をホームに表示します。</p>
-        </div>
+        <header className="home-budget-heading">
+          <div>
+            <p className="kicker">MONTHLY BUDGET</p>
+            <h2>月予算</h2>
+          </div>
+          <button type="button" className="text-button" onClick={onOpenBudget}>
+            設定する
+          </button>
+        </header>
+        <p>{formatMonthKey(monthKey)}の予算は未設定です。</p>
       </section>
     );
   }
 
+  const progress = createBudgetProgress(budget, totalExpenseYen(transactions));
   return (
     <section className="home-budget-section" aria-label="月予算の状況">
-      <div className="home-budget-heading">
+      <header className="home-budget-heading">
         <div>
           <p className="kicker">MONTHLY BUDGET</p>
-          <h2>月予算の状況</h2>
+          <h2>月予算</h2>
         </div>
-        {overview.exceededCategoryCount > 0 && (
-          <span className="budget-alert-badge">
-            {overview.exceededCategoryCount}カテゴリ超過
-          </span>
-        )}
-      </div>
-      <BudgetProgressCard title="月全体予算" progress={overview.monthly} compact />
+        <button type="button" className="text-button" onClick={onOpenBudget}>
+          詳細
+        </button>
+      </header>
+      <BudgetProgressCard
+        title={`${formatMonthKey(monthKey)}の予算`}
+        progress={progress}
+        compact
+        actions={progress.isExceeded ? <span className="budget-alert-badge">超過</span> : undefined}
+      />
     </section>
   );
 }
