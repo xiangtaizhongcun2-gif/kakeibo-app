@@ -1,0 +1,362 @@
+.budget-section,
+.budget-rule-card,
+.home-budget-empty {
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.budget-section {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.budget-section-heading,
+.home-budget-heading {
+  display: flex;
+  min-height: 44px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.budget-section-heading h2,
+.home-budget-heading h2,
+.home-budget-empty h2 {
+  font-size: 1.08rem;
+}
+
+.budget-section-heading > span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.budget-rule-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 17px;
+}
+
+.budget-rule-card > div {
+  display: grid;
+  gap: 4px;
+  border-radius: 14px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.budget-rule-card span {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.budget-rule-card strong {
+  color: var(--accent);
+}
+
+.budget-rule-card > p {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.budget-progress-card {
+  display: grid;
+  gap: 13px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  padding: 17px;
+}
+
+.budget-progress-card.exceeded {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--border));
+  background: color-mix(in srgb, var(--danger-soft) 45%, var(--surface));
+}
+
+.budget-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.budget-card-header h3 {
+  font-size: 0.98rem;
+}
+
+.budget-card-header p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.budget-progress-card.exceeded .budget-card-header p {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.budget-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.budget-progress-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-soft);
+}
+
+.budget-progress-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 180ms ease;
+}
+
+.budget-progress-card.exceeded .budget-progress-track > span {
+  background: var(--danger);
+}
+
+.budget-progress-main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.budget-progress-main > strong {
+  color: var(--accent);
+  font-size: clamp(1.45rem, 7vw, 2rem);
+}
+
+.budget-progress-card.exceeded .budget-progress-main > strong {
+  color: var(--danger);
+}
+
+.budget-progress-main > span {
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-align: right;
+}
+
+.budget-progress-main b {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.budget-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.budget-values > div {
+  display: grid;
+  gap: 3px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  padding: 10px;
+}
+
+.budget-values dt {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+.budget-values dd {
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.budget-progress-card.compact {
+  box-shadow: none;
+}
+
+.budget-progress-card.compact .budget-values {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.budget-unset-card,
+.category-budget-unset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px dashed var(--border);
+  border-radius: 17px;
+  padding: 16px;
+}
+
+.budget-unset-card p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.budget-unset-card .primary-button,
+.category-budget-unset .secondary-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.category-budget-list {
+  display: grid;
+  gap: 10px;
+}
+
+.category-budget-unset > div {
+  min-width: 0;
+}
+
+.category-budget-unset strong,
+.category-budget-unset small {
+  display: block;
+}
+
+.category-budget-unset small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.budget-form {
+  display: grid;
+  gap: 13px;
+}
+
+.budget-form > label {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.budget-form-note {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.home-budget-section {
+  display: grid;
+  gap: 10px;
+}
+
+.home-budget-empty {
+  padding: 20px;
+}
+
+.home-budget-empty p:last-child {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.budget-alert-badge {
+  border-radius: 999px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  padding: 7px 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.settings-toggle-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.settings-toggle {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 11px 13px;
+}
+
+.settings-toggle > span {
+  min-width: 0;
+}
+
+.settings-toggle strong,
+.settings-toggle small {
+  display: block;
+}
+
+.settings-toggle small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.settings-toggle input[role="switch"] {
+  width: 48px;
+  min-width: 48px;
+  height: 28px;
+  min-height: 28px;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 460px) {
+  .budget-section,
+  .home-budget-empty {
+    padding: 17px;
+  }
+
+  .budget-unset-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .budget-unset-card .primary-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .budget-rule-card,
+  .budget-values {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-rule-card > p {
+    grid-column: auto;
+  }
+
+  .budget-progress-main {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .budget-progress-main > span {
+    text-align: left;
+  }
+
+  .budget-progress-card.compact .budget-values {
+    grid-template-columns: 1fr;
+  }
+
+  .category-budget-unset {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
