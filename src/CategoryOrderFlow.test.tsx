@@ -74,4 +74,65 @@ describe('category order flow', () => {
     ]);
     expect(categories.map((category) => category.sortOrder)).toEqual([0, 1, 2, 3, 4]);
   });
+
+  it('設定した支払い方法順を登録フォームへ反映する', async () => {
+    const user = userEvent.setup();
+    render(<App services={services} />);
+
+    expect(await screen.findByRole('heading', { name: '支払い方法' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '銀行振込を上へ' }));
+
+    expect(
+      await screen.findByText('支払い方法の順番を変更しました。'),
+    ).toBeInTheDocument();
+
+    await waitFor(async () => {
+      expect(await database.paymentMethods.get('payment-method-bank-transfer')).toMatchObject({
+        sortOrder: 2,
+      });
+      expect(await database.paymentMethods.get('payment-method-electronic-money')).toMatchObject({
+        sortOrder: 3,
+      });
+    });
+
+    await user.click(screen.getByRole('button', { name: '登録' }));
+    expect(await screen.findByRole('heading', { name: '収支を登録' })).toBeInTheDocument();
+
+    const paymentSelect = screen.getByLabelText('支払い方法');
+    const labels = within(paymentSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+
+    expect(labels).toEqual([
+      '選択してください',
+      '未設定',
+      '現金',
+      'クレジットカード',
+      '銀行振込',
+      '電子マネー',
+    ]);
+  });
+
+  it('追加した支払い方法を現在の並び順の末尾へ置く', async () => {
+    await services.masterData.movePaymentMethod('payment-method-bank-transfer', 'up');
+    await services.masterData.createPaymentMethod('PayPay', 'electronic-money');
+
+    const paymentMethods = (await services.masterData.listPaymentMethods(true)).filter(
+      (paymentMethod) => !paymentMethod.isSystem,
+    );
+    expect(paymentMethods.map((paymentMethod) => paymentMethod.name)).toEqual([
+      '現金',
+      'クレジットカード',
+      '銀行振込',
+      '電子マネー',
+      'PayPay',
+    ]);
+    expect(paymentMethods.map((paymentMethod) => paymentMethod.sortOrder)).toEqual([
+      0,
+      1,
+      2,
+      3,
+      4,
+    ]);
+  });
 });

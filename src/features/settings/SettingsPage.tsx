@@ -109,6 +109,10 @@ export function SettingsPage({
     }, '支払い方法を追加しました。');
   };
 
+  const reorderablePaymentMethods = masterData.paymentMethods.filter(
+    (paymentMethod) => !paymentMethod.isSystem,
+  );
+
   return (
     <div className="page-stack">
       {(message !== '' || error !== '') && (
@@ -280,6 +284,9 @@ export function SettingsPage({
 
       <section className="settings-card">
         <h2>支払い方法</h2>
+        <p className="settings-description">
+          「未設定」は先頭に固定され、矢印で変更した順番が登録画面にも反映されます。
+        </p>
         <form className="payment-form" onSubmit={(event) => void addPaymentMethod(event)}>
           <label>
             <span>名前</span>
@@ -305,28 +312,61 @@ export function SettingsPage({
           </label>
           <button className="primary-button" type="submit">追加</button>
         </form>
-        <ul className="master-list">
-          {masterData.paymentMethods.map((paymentMethod) => (
-            <li key={paymentMethod.id}>
-              <div>
-                <strong>{paymentMethod.name}</strong>
-                <small>
-                  {paymentMethod.isSystem
-                    ? 'システム管理'
-                    : `${paymentMethod.usageCount}件で使用`}
-                </small>
-              </div>
-              {!paymentMethod.isSystem && (
-                <button
-                  type="button"
-                  className="danger-text-button"
-                  onClick={() => setPaymentToDelete(paymentMethod)}
-                >
-                  削除
-                </button>
-              )}
-            </li>
-          ))}
+        <ul className="master-list category-sortable-list">
+          {masterData.paymentMethods.map((paymentMethod) => {
+            const paymentIndex = reorderablePaymentMethods.findIndex(
+              (item) => item.id === paymentMethod.id,
+            );
+            return (
+              <li key={paymentMethod.id}>
+                <div className="category-list-copy">
+                  <strong>{paymentMethod.name}</strong>
+                  <small>
+                    {paymentMethod.isSystem
+                      ? 'システム管理・先頭固定'
+                      : `${paymentMethod.usageCount}件で使用`}
+                  </small>
+                </div>
+                {!paymentMethod.isSystem && (
+                  <div className="category-list-actions">
+                    <button
+                      type="button"
+                      className="category-order-button"
+                      aria-label={`${paymentMethod.name}を上へ`}
+                      title="上へ"
+                      disabled={paymentIndex === 0}
+                      onClick={() => void run(
+                        () => masterDataRepository.movePaymentMethod(paymentMethod.id, 'up'),
+                        '支払い方法の順番を変更しました。',
+                      )}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="category-order-button"
+                      aria-label={`${paymentMethod.name}を下へ`}
+                      title="下へ"
+                      disabled={paymentIndex === reorderablePaymentMethods.length - 1}
+                      onClick={() => void run(
+                        () => masterDataRepository.movePaymentMethod(paymentMethod.id, 'down'),
+                        '支払い方法の順番を変更しました。',
+                      )}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-text-button category-visibility-button"
+                      onClick={() => setPaymentToDelete(paymentMethod)}
+                    >
+                      削除
+                    </button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
