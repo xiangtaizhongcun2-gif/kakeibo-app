@@ -1,0 +1,3 @@
+.balance-summary.negative strong {
+  color: var(--expense);
+}
