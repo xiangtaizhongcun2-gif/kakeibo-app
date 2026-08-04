@@ -6,6 +6,7 @@ import type {
   MonthlyTotals,
 } from './analyticsModel';
 import './analytics.css';
+import './balance-color.css';
 
 export function SummaryCards({ totals }: { totals: MonthlyTotals }): React.JSX.Element {
   return (
@@ -20,7 +21,9 @@ export function SummaryCards({ totals }: { totals: MonthlyTotals }): React.JSX.E
         <strong>{formatYen(totals.expenseYen)}</strong>
         <span>{totals.expenseCount}件</span>
       </article>
-      <article className="summary-card balance-summary">
+      <article
+        className={`summary-card balance-summary${totals.balanceYen < 0 ? ' negative' : ''}`}
+      >
         <small>残額</small>
         <strong>{formatYen(totals.balanceYen)}</strong>
         <span>収入 − 支出</span>
