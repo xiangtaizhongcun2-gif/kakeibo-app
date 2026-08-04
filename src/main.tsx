@@ -6,6 +6,7 @@ import { registerServiceWorker } from './pwa';
 import './styles.css';
 import './tab-colors.css';
 import './category-order.css';
+import './form-control-font.css';
 
 const rootElement = document.getElementById('root');
 if (rootElement === null) throw new Error('アプリのルート要素が見つかりません。');
