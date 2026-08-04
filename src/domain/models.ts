@@ -67,6 +67,7 @@ export interface PaymentMethod extends EntityTimestamps {
   usageCount: number;
   isActive: boolean;
   isSystem: boolean;
+  sortOrder?: number;
 }
 
 export interface MonthlyBudget extends EntityTimestamps {
