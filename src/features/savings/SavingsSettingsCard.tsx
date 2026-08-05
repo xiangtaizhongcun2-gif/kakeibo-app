@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { SavingsSettings } from '../../domain/models';
 import type { SavingsRepository } from '../../data/repositories/savingsRepository';
+import { MoneyInput } from '../calculator/MoneyInput';
 import {
   parseSavingsBalance,
   parseSavingsGoalAmount,
@@ -111,21 +112,16 @@ export function SavingsSettingsCard({
 
       <form className="savings-form" onSubmit={(event) => void save(event)} noValidate>
         <label htmlFor="savings-balance">現在の貯金額</label>
-        <div className="money-field">
-          <span aria-hidden="true">¥</span>
-          <input
-            id="savings-balance"
-            type="number"
-            inputMode="numeric"
-            min="0"
-            step="1"
-            value={balance}
-            onChange={(event) => {
-              setBalance(event.currentTarget.value);
-              setError('');
-            }}
-          />
-        </div>
+        <MoneyInput
+          id="savings-balance"
+          value={balance}
+          minimumYen={0}
+          onValueChange={(value) => {
+            setBalance(value);
+            setError('');
+          }}
+          calculatorLabel="現在の貯金額を電卓で計算"
+        />
 
         <div className="savings-goal-fields">
           <div className="savings-goal-field">
@@ -144,22 +140,16 @@ export function SavingsSettingsCard({
           </div>
           <div className="savings-goal-field">
             <label htmlFor="savings-goal-amount">目標金額</label>
-            <div className="money-field">
-              <span aria-hidden="true">¥</span>
-              <input
-                id="savings-goal-amount"
-                type="number"
-                inputMode="numeric"
-                min="1"
-                step="1"
-                value={goalAmount}
-                placeholder="100000"
-                onChange={(event) => {
-                  setGoalAmount(event.currentTarget.value);
-                  setError('');
-                }}
-              />
-            </div>
+            <MoneyInput
+              id="savings-goal-amount"
+              value={goalAmount}
+              placeholder="100000"
+              onValueChange={(value) => {
+                setGoalAmount(value);
+                setError('');
+              }}
+              calculatorLabel="貯金の目標金額を電卓で計算"
+            />
           </div>
         </div>
 
