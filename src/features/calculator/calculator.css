@@ -1,0 +1,115 @@
+.calculator-money-field input {
+  min-width: 0;
+}
+
+.money-calculator-button {
+  min-width: 58px;
+  min-height: 38px;
+  margin-right: 5px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface-soft);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.calculator-backdrop {
+  z-index: 100;
+}
+
+.calculator-dialog {
+  width: min(calc(100% - 24px), 420px);
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top));
+  overflow-y: auto;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+}
+
+.calculator-display {
+  display: grid;
+  min-height: 88px;
+  align-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-soft);
+  padding: 14px 16px;
+  text-align: right;
+}
+
+.calculator-display small {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.calculator-display output {
+  overflow-wrap: anywhere;
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.calculator-error {
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: var(--danger-soft);
+  padding: 9px 11px;
+  color: var(--danger);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.calculator-keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calculator-key {
+  min-width: 0;
+  min-height: 52px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.calculator-key:active {
+  transform: translateY(1px);
+  background: var(--surface-soft);
+}
+
+.calculator-key.operator,
+.calculator-key.equals {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.calculator-key.utility {
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.calculator-key.zero,
+.calculator-key.double-zero {
+  grid-column: span 2;
+}
+
+.calculator-apply {
+  width: 100%;
+  margin-top: 12px;
+}
+
+@media (max-width: 360px) {
+  .calculator-dialog {
+    width: calc(100% - 16px);
+  }
+
+  .calculator-key {
+    min-height: 48px;
+  }
+}
