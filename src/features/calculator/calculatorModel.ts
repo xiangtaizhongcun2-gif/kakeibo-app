@@ -7,7 +7,7 @@ export type CalculatorEvaluation =
 const MAX_EXPRESSION_LENGTH = 48;
 const OPERATOR_PATTERN = /[+\-*/]/;
 
-function isOperator(value: string): value is CalculatorOperator {
+function isOperator(value: string | undefined): value is CalculatorOperator {
   return value === '+' || value === '-' || value === '*' || value === '/';
 }
 
