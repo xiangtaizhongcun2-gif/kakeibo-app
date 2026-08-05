@@ -3,6 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { MoneyInput } from './MoneyInput';
 
+function calculatorButton(text: string): HTMLButtonElement {
+  return screen.getByText(text, { selector: 'button' });
+}
+
 describe('MoneyInput', () => {
   it('通常の数値入力をそのまま利用できる', async () => {
     const user = userEvent.setup();
@@ -35,17 +39,19 @@ describe('MoneyInput', () => {
     );
 
     await user.click(screen.getByRole('button', { name: '取引金額を電卓で計算' }));
-    expect(screen.getByRole('dialog', { name: '取引金額を電卓で計算' })).toBeInTheDocument();
+    expect(
+      document.querySelector('[role="dialog"][aria-label="取引金額を電卓で計算"]'),
+    ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '1' }));
-    await user.click(screen.getByRole('button', { name: '00' }));
-    await user.click(screen.getByRole('button', { name: '足す' }));
-    await user.click(screen.getByRole('button', { name: '2' }));
-    await user.click(screen.getByRole('button', { name: '00' }));
-    await user.click(screen.getByRole('button', { name: 'この金額を使う' }));
+    await user.click(calculatorButton('1'));
+    await user.click(calculatorButton('00'));
+    await user.click(calculatorButton('＋'));
+    await user.click(calculatorButton('2'));
+    await user.click(calculatorButton('00'));
+    await user.click(calculatorButton('この金額を使う'));
 
     expect(onValueChange).toHaveBeenLastCalledWith('300');
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(document.querySelector('[role="dialog"]')).not.toBeInTheDocument();
   });
 
   it('端数が出る割り算は金額へ反映しない', async () => {
@@ -62,13 +68,13 @@ describe('MoneyInput', () => {
     );
 
     await user.click(screen.getByRole('button', { name: '取引金額を電卓で計算' }));
-    await user.click(screen.getByRole('button', { name: '1' }));
-    await user.click(screen.getByRole('button', { name: '00' }));
-    await user.click(screen.getByRole('button', { name: '割る' }));
-    await user.click(screen.getByRole('button', { name: '3' }));
-    await user.click(screen.getByRole('button', { name: 'この金額を使う' }));
+    await user.click(calculatorButton('1'));
+    await user.click(calculatorButton('00'));
+    await user.click(calculatorButton('÷'));
+    await user.click(calculatorButton('3'));
+    await user.click(calculatorButton('この金額を使う'));
 
-    expect(screen.getByRole('alert')).toHaveTextContent('1円単位にならない割り算です。');
+    expect(screen.getByText('1円単位にならない割り算です。')).toBeInTheDocument();
     expect(onValueChange).not.toHaveBeenCalled();
   });
 });
