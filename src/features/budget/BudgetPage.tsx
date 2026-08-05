@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { BudgetSettings, MonthKey, MonthlyBudget, Transaction } from '../../domain/models';
 import type { BudgetRepository } from '../../data/repositories/budgetRepository';
 import type { TransactionRepository } from '../../data/repositories/transactionRepository';
+import { MoneyInput } from '../calculator/MoneyInput';
 import { formatMonthKey, shiftMonthKey } from '../transactions/transactionModel';
 import { BudgetProgressCard } from './BudgetProgressCard';
 import {
@@ -205,23 +206,17 @@ export function BudgetPage({
             </div>
             <form className="budget-form" onSubmit={(event) => void handleSubmit(event)} noValidate>
               <label htmlFor="monthly-budget-amount">予算額</label>
-              <div className="money-field">
-                <span aria-hidden="true">¥</span>
-                <input
-                  id="monthly-budget-amount"
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  step="1"
-                  value={amount}
-                  onChange={(event) => {
-                    setAmount(event.currentTarget.value);
-                    setAmountError('');
-                  }}
-                  aria-invalid={amountError !== ''}
-                  aria-describedby={amountError === '' ? undefined : 'monthly-budget-error'}
-                />
-              </div>
+              <MoneyInput
+                id="monthly-budget-amount"
+                value={amount}
+                onValueChange={(value) => {
+                  setAmount(value);
+                  setAmountError('');
+                }}
+                calculatorLabel="月予算を電卓で計算"
+                aria-invalid={amountError !== ''}
+                aria-describedby={amountError === '' ? undefined : 'monthly-budget-error'}
+              />
               {amountError !== '' && (
                 <small id="monthly-budget-error" className="field-error">{amountError}</small>
               )}
