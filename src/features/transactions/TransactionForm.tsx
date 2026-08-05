@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
 import type { Transaction } from '../../domain/models';
 import type { NewTransaction } from '../../data/repositories/transactionRepository';
+import { MoneyInput } from '../calculator/MoneyInput';
 import {
   buildTransactionInput,
   changeFormType,
@@ -110,24 +111,18 @@ export function TransactionForm({
 
       <div className="form-field">
         <label htmlFor={amountId}>金額</label>
-        <div className="money-field">
-          <span aria-hidden="true">¥</span>
-          <input
-            id={amountId}
-            name="amount"
-            type="number"
-            inputMode="numeric"
-            min="1"
-            step="1"
-            value={state.amount}
-            onChange={(event) => update('amount', event.currentTarget.value)}
-            aria-invalid={fieldError(errors, 'amount') !== undefined}
-            aria-describedby={
-              fieldError(errors, 'amount') === undefined ? undefined : amountErrorId
-            }
-            required
-          />
-        </div>
+        <MoneyInput
+          id={amountId}
+          name="amount"
+          value={state.amount}
+          onValueChange={(value) => update('amount', value)}
+          calculatorLabel="取引金額を電卓で計算"
+          aria-invalid={fieldError(errors, 'amount') !== undefined}
+          aria-describedby={
+            fieldError(errors, 'amount') === undefined ? undefined : amountErrorId
+          }
+          required
+        />
         {fieldError(errors, 'amount') !== undefined && (
           <small className="field-error" id={amountErrorId}>
             {fieldError(errors, 'amount')}
