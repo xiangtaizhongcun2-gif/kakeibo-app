@@ -8,6 +8,7 @@ import {
   createTransactionsCsv,
   monthDateRange,
 } from '../export/exportModel';
+import { DailyTotalsHeader } from './DailyTotalsHeader';
 import { TransactionForm } from './TransactionForm';
 import {
   applyTransactionFilters,
@@ -268,7 +269,7 @@ export function TransactionsPage({
 
       {!isLoading && loadError === '' && groups.map((group) => (
         <section className="date-group" key={group.date}>
-          <h2>{formatLocalDate(group.date)}</h2>
+          <DailyTotalsHeader date={group.date} transactions={group.transactions} />
           <div className="transaction-list">
             {group.transactions.map((transaction) => {
               const category = categoryName(transaction, masterData);
