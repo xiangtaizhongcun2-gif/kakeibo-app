@@ -1,0 +1,62 @@
+.date-group-header {
+  display: grid;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.date-group-header h2 {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.daily-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.daily-totals > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  padding: 8px 10px;
+}
+
+.daily-totals dt {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.daily-totals dd {
+  overflow-wrap: anywhere;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.daily-totals .expense dd,
+.daily-totals .balance.negative dd {
+  color: var(--expense);
+}
+
+.daily-totals .income dd,
+.daily-totals .balance.positive dd {
+  color: var(--income);
+}
+
+@media (max-width: 350px) {
+  .daily-totals {
+    gap: 6px;
+  }
+
+  .daily-totals > div {
+    padding: 8px;
+  }
+
+  .daily-totals dd {
+    font-size: 0.7rem;
+  }
+}
