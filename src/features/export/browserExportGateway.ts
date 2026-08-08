@@ -11,6 +11,8 @@ export interface ExportGateway {
   openMonthlyPdfReport(report: MonthlyExportReport): boolean;
 }
 
+const PRINT_FRAME_ATTRIBUTE = 'data-monthly-pdf-print-frame';
+
 function downloadFile(file: File): void {
   const url = URL.createObjectURL(file);
   const anchor = document.createElement('a');
@@ -21,6 +23,23 @@ function downloadFile(file: File): void {
   anchor.click();
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function createPrintFrame(): HTMLIFrameElement {
+  const frame = document.createElement('iframe');
+  frame.setAttribute(PRINT_FRAME_ATTRIBUTE, 'true');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.tabIndex = -1;
+  frame.style.position = 'fixed';
+  frame.style.left = '-10000px';
+  frame.style.top = '0';
+  frame.style.width = '1px';
+  frame.style.height = '1px';
+  frame.style.border = '0';
+  frame.style.opacity = '0';
+  frame.style.pointerEvents = 'none';
+  document.body.append(frame);
+  return frame;
 }
 
 class BrowserExportGateway implements ExportGateway {
@@ -55,27 +74,43 @@ class BrowserExportGateway implements ExportGateway {
   }
 
   openMonthlyPdfReport(report: MonthlyExportReport): boolean {
-    const reportWindow = window.open('', '_blank');
-    if (reportWindow === null) return false;
+    const frame = createPrintFrame();
+    const printWindow = frame.contentWindow;
+    const printDocument = frame.contentDocument;
 
-    reportWindow.document.open();
-    reportWindow.document.write(renderMonthlyReportHtml(report));
-    reportWindow.document.close();
-    reportWindow.document.title = createMonthlyPdfFilename(report.monthKey);
-
-    const printReport = (): void => {
-      reportWindow.focus();
-      reportWindow.print();
-    };
-
-    if (reportWindow.document.readyState === 'complete') {
-      reportWindow.setTimeout(printReport, 100);
-    } else {
-      reportWindow.addEventListener('load', () => reportWindow.setTimeout(printReport, 100), {
-        once: true,
-      });
+    if (printWindow === null || printDocument === null) {
+      frame.remove();
+      return false;
     }
-    return true;
+
+    try {
+      printDocument.open();
+      printDocument.write(renderMonthlyReportHtml(report));
+      printDocument.close();
+      printDocument.title = createMonthlyPdfFilename(report.monthKey);
+
+      let cleanedUp = false;
+      const cleanup = (): void => {
+        if (cleanedUp) return;
+        cleanedUp = true;
+        frame.remove();
+      };
+
+      printWindow.addEventListener('afterprint', cleanup, { once: true });
+      window.setTimeout(cleanup, 120000);
+      window.setTimeout(() => {
+        try {
+          printWindow.print();
+        } catch {
+          cleanup();
+        }
+      }, 150);
+
+      return true;
+    } catch {
+      frame.remove();
+      return false;
+    }
   }
 }
 
