@@ -152,13 +152,11 @@ export function ExportPanel({
         monthlyBudget,
       );
       if (!gateway.openMonthlyPdfReport(report)) {
-        setError(
-          '印刷用レポートを開けませんでした。ポップアップを許可して再試行してください。',
-        );
+        setError('印刷用レポートを準備できませんでした。もう一度お試しください。');
         return;
       }
       setMessage(
-        '印刷画面を開きました。「PDFとして保存」または共有を選択してください。',
+        '印刷画面を開きました。PDF保存または共有後は、このアプリにそのまま戻れます。',
       );
     } catch {
       setError('出力する月を選択してください。');
@@ -233,7 +231,7 @@ export function ExportPanel({
           </button>
         </div>
         <small>
-          PDFボタンは印刷用画面を開きます。ブラウザの印刷画面でPDF保存または共有を選択してください。
+          PDFボタンはアプリを離れずに印刷画面を開きます。印刷画面でPDF保存または共有を選択してください。
         </small>
       </div>
 
